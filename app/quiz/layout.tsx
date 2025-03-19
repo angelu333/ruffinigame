@@ -6,7 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata = {
-  title: "Rufini - Calculadora y Quiz de Polinomios",
+  title: "Ruffini - Calculadora y Quiz de Polinomios",
   description: "Aprende y practica el método de Ruffini para división de polinomios",
 }
 

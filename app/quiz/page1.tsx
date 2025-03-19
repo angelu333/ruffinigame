@@ -5,7 +5,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-500 to-indigo-600 flex flex-col items-center justify-center p-4">
       <div className="max-w-4xl w-full text-center">
-        <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 animate-pulse">Rufini</h1>
+        <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 animate-pulse">Ruffini</h1>
         <p className="text-xl text-white/90 mb-12 max-w-2xl mx-auto">
           Explora el mundo de los polinomios con nuestra calculadora avanzada y pon a prueba tus conocimientos con
           divertidos desafíos.
@@ -39,7 +39,7 @@ export default function Home() {
       </div>
 
       <footer className="mt-16 text-white/70 text-sm">
-        © {new Date().getFullYear()} Rufini - Todos los derechos reservados
+        © {new Date().getFullYear()} Ruffini - Todos los derechos reservados
       </footer>
     </div>
   )
