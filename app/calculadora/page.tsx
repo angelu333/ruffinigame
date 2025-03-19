@@ -12,8 +12,7 @@ import { ArrowLeft, Calculator } from "lucide-react"
 export default function CalculadoraPage() {
   const [grado, setGrado] = useState<number>(3)
   const [coeficientes, setCoeficientes] = useState<number[]>([])
-  const [divisor, setDivisor] = useState<number>(0)
-  const [resultado, setResultado] = useState<{ cociente: number[]; residuo: number } | null>(null)
+  const [resultados, setResultados] = useState<{divisores: number[]; factores: string[]; ecuacionCuadratica: string} | null>(null)
   const [error, setError] = useState<string>("");
 
   // Generar inputs para coeficientes basados en el grado
@@ -23,7 +22,7 @@ export default function CalculadoraPage() {
       inputs.push(
         <div key={i} className="flex items-center gap-2">
           <Label htmlFor={`coef-${i}`} className="w-24 text-right text-gray-700 dark:text-gray-300">
-            {i > 0 ? `Coef. x${i > 1 ? `^${i}` : ""}` : "Término ind."}:
+            {i > 0 ? `Coef. x${i > 1 ? `<sup>${i}</sup>` : ""}` : "Término ind."}:
           </Label>
           <Input
             id={`coef-${i}`}
@@ -42,29 +41,85 @@ export default function CalculadoraPage() {
     return inputs
   }
 
-  const calcularRuffini = () => {
-    if (divisor === 0) {
-      setError("El divisor no puede ser cero")
-      return
+  const encontrarDivisores = (numero: number): number[] => {
+    const divisores: number[] = []
+    const absNumero = Math.abs(numero)
+    
+    for (let i = 1; i <= absNumero; i++) {
+      if (absNumero % i === 0) {
+        divisores.push(i)
+        divisores.push(-i)
+        if (i !== absNumero) {
+          divisores.push(absNumero / i)
+          divisores.push(-absNumero / i)
+        }
+      }
     }
+    
+    return [...new Set(divisores)].sort((a, b) => a - b)
+  }
 
+  const evaluarRuffini = (coefs: number[], divisor: number): { cociente: number[]; residuo: number } => {
+    const cociente = [coefs[0]]
+    for (let i = 1; i <= coefs.length - 1; i++) {
+      cociente[i] = coefs[i] + cociente[i - 1] * divisor
+    }
+    return {
+      cociente: cociente.slice(0, -1),
+      residuo: cociente[cociente.length - 1]
+    }
+  }
+
+  const calcularRuffini = () => {
     if (coeficientes.length !== grado + 1) {
       setError("Por favor, completa todos los coeficientes")
       return
     }
 
     setError("")
+    let polinomioActual = [...coeficientes]
+    const factores: string[] = []
+    const divisoresEncontrados: number[] = []
+    const binomiosRepetidos = new Map<string, number>()
+    
+    while (polinomioActual.length > 2) { // Continuar hasta llegar a lineal
+      const terminoIndependiente = polinomioActual[polinomioActual.length - 1]
+      if (terminoIndependiente === 0) {
+        divisoresEncontrados.push(0)
+        const binomio = "(x)"
+        binomiosRepetidos.set(binomio, (binomiosRepetidos.get(binomio) || 0) + 1)
+        polinomioActual = polinomioActual.slice(0, -1)
+        continue
+      }
 
-    const cociente = [coeficientes[0]]
-    for (let i = 1; i <= grado; i++) {
-      cociente[i] = coeficientes[i] + cociente[i - 1] * divisor
+      const divisores = encontrarDivisores(terminoIndependiente)
+      let encontrado = false
+      
+      for (const divisor of divisores) {
+        const resultado = evaluarRuffini(polinomioActual, divisor)
+        if (resultado.residuo === 0) {
+          polinomioActual = resultado.cociente
+          divisoresEncontrados.push(divisor)
+          const binomio = `(x ${divisor >= 0 ? '-' : '+'} ${Math.abs(divisor)})`
+          binomiosRepetidos.set(binomio, (binomiosRepetidos.get(binomio) || 0) + 1)
+          encontrado = true
+          break
+        }
+      }
+      
+      if (!encontrado) {
+        break
+      }
     }
 
-    const residuo = cociente.pop() || 0
+    const factoresConExponentes = Array.from(binomiosRepetidos.entries()).map(([binomio, repeticiones]) => {
+      return repeticiones > 1 ? `${binomio}<sup>${repeticiones}</sup>` : binomio
+    })
 
-    setResultado({
-      cociente,
-      residuo,
+    setResultados({
+      divisores: divisoresEncontrados,
+      factores: factoresConExponentes,
+      ecuacionCuadratica: mostrarPolinomio(polinomioActual)
     })
   }
 
@@ -136,7 +191,7 @@ export default function CalculadoraPage() {
                     const nuevoGrado = Number.parseInt(e.target.value) || 1
                     setGrado(Math.min(Math.max(nuevoGrado, 1), 10))
                     setCoeficientes([])
-                    setResultado(null)
+                    setResultados(null)
                   }}
                   className="max-w-[100px] bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700 focus:border-purple-500 dark:focus:border-purple-400"
                 />
@@ -144,18 +199,7 @@ export default function CalculadoraPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{generarInputsCoeficientes()}</div>
 
-              <div className="flex items-center gap-2">
-                <Label htmlFor="divisor" className="w-24 text-right text-gray-700 dark:text-gray-300">
-                  Valor de a en (x-a):
-                </Label>
-                <Input
-                  id="divisor"
-                  type="number"
-                  placeholder="0"
-                  className="max-w-[120px] bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700 focus:border-purple-500 dark:focus:border-purple-400"
-                  onChange={(e) => setDivisor(Number.parseFloat(e.target.value) || 0)}
-                />
-              </div>
+
             </div>
 
             {error && (
@@ -171,13 +215,16 @@ export default function CalculadoraPage() {
               Calcular
             </Button>
 
-            {resultado && (
+            {resultados && (
               <div className="space-y-4 p-4 bg-white/30 dark:bg-gray-800/30 rounded-lg border border-gray-200 dark:border-gray-700">
                 <div className="text-gray-900 dark:text-gray-100">
-                  <strong>Cociente:</strong> {mostrarPolinomio(resultado.cociente)}
+                  <strong>Divisores encontrados:</strong> {resultados.divisores.join(", ")}
                 </div>
                 <div className="text-gray-900 dark:text-gray-100">
-                  <strong>Residuo:</strong> {resultado.residuo}
+                  <strong>Factorización:</strong> {resultados.factores.join(" ")}
+                </div>
+                <div className="text-gray-900 dark:text-gray-100">
+                  <strong>Ecuación cuadrática restante:</strong> {resultados.ecuacionCuadratica}
                 </div>
               </div>
             )}
