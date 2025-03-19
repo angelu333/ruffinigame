@@ -232,47 +232,65 @@ export default function QuizPage() {
   // Renderizar pantalla de inicio
   if (!iniciado) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-600 to-purple-500 flex flex-col items-center p-4">
-        <div className="w-full max-w-4xl">
-          <div className="flex justify-between items-center mb-8">
+      <div className="min-h-screen bg-[conic-gradient(at_top,_var(--tw-gradient-stops))] from-indigo-900 via-purple-900 to-slate-900 flex flex-col items-center p-4">
+        <div className="w-full max-w-4xl relative">
+          {/* Decorative math symbols background */}
+          <div className="absolute inset-0 opacity-5 pointer-events-none flex items-center justify-center text-white text-9xl select-none">
+            ∑ ∫ π ∞
+          </div>
+
+          <div className="flex justify-between items-center mb-8 relative z-10">
             <Link href="/">
-              <Button variant="ghost" className="text-white hover:bg-white/20">
+              <Button variant="ghost" className="text-white hover:bg-white/20 backdrop-blur-sm">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Volver al inicio
               </Button>
             </Link>
-            <h1 className="text-3xl font-bold text-white flex items-center">
-              <GameController className="mr-2 h-6 w-6" />
+            <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 flex items-center">
+              <GameController className="mr-3 h-8 w-8" />
               Quiz de Ruffini
             </h1>
             <div className="w-[100px]"></div>
           </div>
 
-          <Card className="w-full">
-            <CardHeader>
-              <CardTitle>¡Bienvenido al Quiz de Ruffini!</CardTitle>
-              <CardDescription>
-                Pon a prueba tus conocimientos sobre el método de Ruffini resolviendo ejercicios.
+          <Card className="w-full bg-white/10 backdrop-blur-md border-white/20">
+            <CardHeader className="space-y-4">
+              <CardTitle className="text-3xl text-center text-white">¡Bienvenido al Quiz de Ruffini!</CardTitle>
+              <CardDescription className="text-lg text-center text-white/80">
+                Demuestra tu dominio del método de Ruffini resolviendo ejercicios matemáticos
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Selecciona la dificultad</Label>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <Label className="text-white text-lg">Selecciona tu nivel de desafío</Label>
                 <Select value={dificultad} onValueChange={(value: Dificultad) => setDificultad(value)}>
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-white/20 border-white/30 text-white">
                     <SelectValue placeholder="Selecciona la dificultad" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="facil">Fácil</SelectItem>
-                    <SelectItem value="medio">Medio</SelectItem>
-                    <SelectItem value="dificil">Difícil</SelectItem>
+                    <SelectItem value="facil">Fácil - Polinomios de grado 3</SelectItem>
+                    <SelectItem value="medio">Medio - Polinomios de grado 4</SelectItem>
+                    <SelectItem value="dificil">Difícil - Polinomios de grado 5</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+
+              <div className="bg-white/10 rounded-lg p-4 space-y-2">
+                <h3 className="font-semibold text-white">Reglas del juego:</h3>
+                <ul className="list-disc list-inside space-y-1 text-white/80">
+                  <li>Tienes 3 vidas para completar el desafío</li>
+                  <li>Cada respuesta correcta suma puntos según la dificultad</li>
+                  <li>Fácil: 10 puntos | Medio: 20 puntos | Difícil: 30 puntos</li>
+                  <li>¡Demuestra tu maestría en el método de Ruffini!</li>
+                </ul>
+              </div>
             </CardContent>
             <CardFooter>
-              <Button onClick={iniciarJuego} className="w-full">
-                Comenzar Quiz
+              <Button 
+                onClick={iniciarJuego} 
+                className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-bold py-3 text-lg shadow-lg hover:shadow-xl transition-all duration-300"
+              >
+                Comenzar el Desafío
               </Button>
             </CardFooter>
           </Card>
@@ -284,66 +302,83 @@ export default function QuizPage() {
   // Renderizar pantalla de fin de juego
   if (juegoTerminado) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-600 to-purple-500 flex flex-col items-center p-4">
+      <div className="min-h-screen bg-[conic-gradient(at_top,_var(--tw-gradient-stops))] from-indigo-900 via-purple-900 to-slate-900 flex flex-col items-center p-4">
         <div className="w-full max-w-4xl">
           <div className="flex justify-between items-center mb-8">
             <Link href="/">
-              <Button variant="ghost" className="text-white hover:bg-white/20">
+              <Button variant="ghost" className="text-white hover:bg-white/20 backdrop-blur-sm">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Volver al inicio
               </Button>
             </Link>
-            <h1 className="text-3xl font-bold text-white flex items-center">
-              <Trophy className="mr-2 h-6 w-6" />
-              Fin del Quiz
+            <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-400 flex items-center">
+              <Trophy className="mr-3 h-8 w-8 text-yellow-400" />
+              Resultados
             </h1>
             <div className="w-[100px]"></div>
           </div>
 
-          <Card className="bg-white/10 backdrop-blur-lg border-white/20 text-white">
+          <Card className="bg-white/10 backdrop-blur-md border-white/20 text-white">
             <CardHeader>
-              <CardTitle className="text-center">¡Quiz completado!</CardTitle>
-              <CardDescription className="text-white/70 text-center">
+              <CardTitle className="text-center text-3xl">
+                {vidas > 0 ? "¡Felicitaciones!" : "¡Buen intento!"}
+              </CardTitle>
+              <CardDescription className="text-white/80 text-center text-lg">
                 {vidas > 0
-                  ? "¡Felicidades! Has completado el quiz con éxito."
-                  : "Has agotado todas tus vidas. ¡Inténtalo de nuevo!"}
+                  ? "Has demostrado tu dominio del método de Ruffini"
+                  : "La práctica lleva a la perfección. ¡Inténtalo de nuevo!"}
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex flex-col items-center justify-center py-6">
-                <Trophy className="h-24 w-24 text-yellow-400 mb-4" />
-                <h2 className="text-4xl font-bold mb-2">{puntuacion} puntos</h2>
-                <p className="text-white/80">
-                  Dificultad: {dificultad === "facil" ? "Fácil" : dificultad === "medio" ? "Medio" : "Difícil"}
+            <CardContent className="space-y-8">
+              <div className="flex flex-col items-center justify-center py-8">
+                <div className="relative">
+                  <Trophy className="h-32 w-32 text-yellow-400 animate-pulse" />
+                  <div className="absolute -top-4 -right-4 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full p-3">
+                    <span className="text-xl font-bold">{puntuacion}</span>
+                  </div>
+                </div>
+                <p className="text-white/80 mt-4 text-lg">
+                  Nivel: {dificultad === "facil" ? "Fácil" : dificultad === "medio" ? "Medio" : "Experto"}
                 </p>
-                <div className="flex items-center mt-2">
+                <div className="flex items-center mt-4 space-x-2">
                   {Array.from({ length: vidas }).map((_, i) => (
-                    <Heart key={i} className="h-6 w-6 text-red-500 fill-red-500 mr-1" />
+                    <Heart key={i} className="h-8 w-8 text-red-500 fill-red-500 animate-bounce" style={{ animationDelay: `${i * 200}ms` }} />
                   ))}
                   {Array.from({ length: 3 - vidas }).map((_, i) => (
-                    <Heart key={i + vidas} className="h-6 w-6 text-red-500/30 mr-1" />
+                    <Heart key={i + vidas} className="h-8 w-8 text-red-500/30" />
                   ))}
                 </div>
               </div>
 
-              <div className="space-y-2 bg-white/20 p-4 rounded-lg">
-                <h3 className="font-semibold">Estadísticas:</h3>
-                <ul className="space-y-1 text-white/90">
-                  <li>
-                    Preguntas respondidas: {preguntaActual + 1} de {preguntas.length}
-                  </li>
-                  <li>Vidas restantes: {vidas} de 3</li>
-                  <li>Puntuación final: {puntuacion}</li>
-                </ul>
+              <div className="bg-white/10 p-6 rounded-lg space-y-3">
+                <h3 className="font-semibold text-xl mb-4">Estadísticas Finales</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-white/5 p-4 rounded-lg text-center">
+                    <p className="text-sm text-white/60">Preguntas Completadas</p>
+                    <p className="text-2xl font-bold">{preguntaActual + 1}/{preguntas.length}</p>
+                  </div>
+                  <div className="bg-white/5 p-4 rounded-lg text-center">
+                    <p className="text-sm text-white/60">Precisión</p>
+                    <p className="text-2xl font-bold">
+                      {Math.round((puntuacion / ((preguntaActual + 1) * (dificultad === "facil" ? 10 : dificultad === "medio" ? 20 : 30))) * 100)}%
+                    </p>
+                  </div>
+                </div>
               </div>
             </CardContent>
-            <CardFooter className="flex flex-col sm:flex-row gap-2">
-              <Button onClick={reiniciarJuego} className="w-full bg-indigo-600 hover:bg-indigo-700">
-                Jugar de nuevo
+            <CardFooter className="flex flex-col sm:flex-row gap-4">
+              <Button 
+                onClick={reiniciarJuego} 
+                className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-lg font-bold"
+              >
+                Intentar de Nuevo
               </Button>
               <Link href="/" className="w-full">
-                <Button variant="outline" className="w-full border-white/30 hover:bg-white/20">
-                  Volver al inicio
+                <Button 
+                  variant="outline" 
+                  className="w-full border-white/30 hover:bg-white/20 text-white text-lg font-bold"
+                >
+                  Volver al Inicio
                 </Button>
               </Link>
             </CardFooter>
@@ -357,58 +392,102 @@ export default function QuizPage() {
   const preguntaActualObj = preguntas[preguntaActual]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-600 to-purple-500 flex flex-col items-center p-4">
+    <div className="min-h-screen bg-[conic-gradient(at_top,_var(--tw-gradient-stops))] from-indigo-900 via-purple-900 to-slate-900 flex flex-col items-center p-4">
       <div className="w-full max-w-4xl">
         <div className="flex justify-between items-center mb-8">
-          <Button variant="ghost" onClick={reiniciarJuego} className="text-white hover:bg-white/20">
+          <Button variant="ghost" onClick={reiniciarJuego} className="text-white hover:bg-white/20 backdrop-blur-sm">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Salir del Quiz
           </Button>
-          <div className="flex items-center space-x-2">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Heart
-                key={i}
-                className={`h-6 w-6 ${i < vidas ? "text-red-500 fill-current" : "text-gray-400"}`}
-              />
-            ))}
+          <div className="flex flex-col items-center">
+            <div className="flex items-center space-x-2 mb-2">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Heart
+                  key={i}
+                  className={`h-6 w-6 transition-all duration-300 ${
+                    i < vidas 
+                      ? "text-red-500 fill-current animate-bounce" 
+                      : "text-gray-400"
+                  }`}
+                  style={{ animationDelay: `${i * 200}ms` }}
+                />
+              ))}
+            </div>
+            <div className="text-white font-bold text-lg bg-white/10 px-4 py-1 rounded-full backdrop-blur-sm">
+              {puntuacion} puntos
+            </div>
           </div>
-          <div className="text-white font-bold">
-            Puntos: {puntuacion}
-          </div>
+          <div className="w-[100px]"></div>
         </div>
 
-        <div className="space-y-4">
-          <Progress value={(preguntaActual + 1) * 20} className="w-full" />
+        <div className="space-y-6">
+          <Progress 
+            value={(preguntaActual + 1) * 20} 
+            className="w-full h-2 bg-white/20 [&>div]:bg-gradient-to-r [&>div]:from-blue-500 [&>div]:to-purple-500"
+          />
           
-          <Card className="w-full">
+          <Card className="w-full bg-white/10 backdrop-blur-md border-white/20">
             <CardHeader>
-              <CardTitle>Pregunta {preguntaActual + 1} de {preguntas.length}</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-2xl text-white flex justify-between items-center">
+                <span>Pregunta {preguntaActual + 1} de {preguntas.length}</span>
+                <span className="text-sm font-normal bg-white/20 px-3 py-1 rounded-full">
+                  {dificultad === "facil" ? "Nivel Fácil" : dificultad === "medio" ? "Nivel Medio" : "Nivel Experto"}
+                </span>
+              </CardTitle>
+              <CardDescription className="text-white/80 text-lg">
                 Encuentra el residuo al dividir el siguiente polinomio entre (x{preguntaActualObj?.divisor >= 0 ? "-" : "+"}{Math.abs(preguntaActualObj?.divisor || 0)})
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="text-2xl font-mono text-center">
+            <CardContent className="space-y-8">
+              <div className="text-3xl font-mono text-center text-white bg-white/5 p-6 rounded-lg">
                 <Polinomio terminos={preguntaActualObj?.polinomio || []} />
               </div>
 
               <RadioGroup
                 value={respuestaSeleccionada?.toString()}
                 onValueChange={(value) => setRespuestaSeleccionada(parseInt(value))}
-                className="space-y-2"
+                className="space-y-3"
                 disabled={respuestaEnviada}
               >
                 {preguntaActualObj?.opciones.map((opcion, index) => (
-                  <div key={index} className="flex items-center space-x-2">
-                    <RadioGroupItem value={index.toString()} id={`opcion-${index}`} />
-                    <Label htmlFor={`opcion-${index}`}>{opcion}</Label>
+                  <div
+                    key={index}
+                    className={`flex items-center space-x-3 rounded-lg border border-white/30 p-4 transition-all duration-300 ${
+                      respuestaEnviada
+                        ? index === preguntaActualObj.respuestaCorrecta
+                          ? "bg-green-500/20 border-green-500/50"
+                          : respuestaSeleccionada === index
+                          ? "bg-red-500/20 border-red-500/50"
+                          : "bg-white/5"
+                        : respuestaSeleccionada === index
+                        ? "bg-white/20 border-white/50"
+                        : "hover:bg-white/10"
+                    }`}
+                  >
+                    <RadioGroupItem 
+                      value={index.toString()} 
+                      id={`opcion-${index}`} 
+                      className="border-white"
+                    />
+                    <Label 
+                      htmlFor={`opcion-${index}`} 
+                      className="w-full cursor-pointer font-medium text-white text-lg"
+                    >
+                      {opcion}
+                    </Label>
                   </div>
                 ))}
               </RadioGroup>
 
               {mostrarFeedback && (
-                <Alert variant={respuestaSeleccionada === preguntaActualObj?.respuestaCorrecta ? "default" : "destructive"}>
-                  <AlertDescription>
+                <Alert
+                  className={`${
+                    respuestaSeleccionada === preguntaActualObj?.respuestaCorrecta
+                      ? "bg-green-500/20 border-green-500/50"
+                      : "bg-red-500/20 border-red-500/50"
+                  }`}
+                >
+                  <AlertDescription className="text-white text-lg">
                     {respuestaSeleccionada === preguntaActualObj?.respuestaCorrecta
                       ? "¡Correcto! " + preguntaActualObj?.explicacion
                       : "Incorrecto. " + preguntaActualObj?.explicacion}
@@ -416,15 +495,23 @@ export default function QuizPage() {
                 </Alert>
               )}
             </CardContent>
-            <CardFooter className="flex justify-end space-x-2">
+            <CardFooter className="flex justify-end space-x-4">
               <Button
                 onClick={verificarRespuesta}
                 disabled={respuestaSeleccionada === null || respuestaEnviada}
+                className={`${
+                  !respuestaEnviada
+                    ? "bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
+                    : "bg-gray-500"
+                } text-white font-bold py-2 px-6 text-lg`}
               >
                 Verificar
               </Button>
               {respuestaEnviada && (
-                <Button onClick={siguientePregunta}>
+                <Button 
+                  onClick={siguientePregunta}
+                  className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold py-2 px-6 text-lg"
+                >
                   {preguntaActual < preguntas.length - 1 ? "Siguiente" : "Finalizar"}
                 </Button>
               )}

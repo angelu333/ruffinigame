@@ -20,15 +20,22 @@ export default function CalculadoraPage() {
     const inputs = []
     for (let i = grado; i >= 0; i--) {
       inputs.push(
-        <div key={i} className="flex items-center gap-2">
-          <Label htmlFor={`coef-${i}`} className="w-24 text-right text-gray-700 dark:text-gray-300">
-            <span dangerouslySetInnerHTML={{ __html: i > 0 ? `Coef. x${i > 1 ? `<sup>${i}</sup>` : ""}` : "Término ind." }} />:
+        <div key={i} className="flex items-center gap-3">
+          <Label 
+            htmlFor={`coef-${i}`} 
+            className="w-28 text-right text-white/80 font-medium"
+          >
+            <span dangerouslySetInnerHTML={{ 
+              __html: i > 0 
+                ? `Coef. x${i > 1 ? `<sup>${i}</sup>` : ""}` 
+                : "Término ind." 
+            }} />:
           </Label>
           <Input
             id={`coef-${i}`}
             type="number"
             placeholder="0"
-            className="max-w-[120px] bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700 focus:border-purple-500 dark:focus:border-purple-400"
+            className="max-w-[120px] bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-purple-500 focus:ring-purple-500"
             onChange={(e) => {
               const newCoeficientes = [...coeficientes]
               newCoeficientes[grado - i] = Number.parseFloat(e.target.value) || 0
@@ -192,32 +199,37 @@ export default function CalculadoraPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 p-4">
+    <div className="min-h-screen bg-[conic-gradient(at_top,_var(--tw-gradient-stops))] from-indigo-900 via-purple-900 to-slate-900 p-4">
       <div className="container mx-auto max-w-4xl">
         <div className="mb-8">
-          <Link
-            href="/"
-            className="inline-flex items-center text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Volver al inicio
+          <Link href="/">
+            <Button variant="ghost" className="text-white hover:bg-white/20 backdrop-blur-sm">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Volver al inicio
+            </Button>
           </Link>
         </div>
 
-        <Card className="bg-white/50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700">
+        <Card className="bg-white/10 backdrop-blur-md border-white/20">
           <CardHeader>
-            <div className="flex items-center gap-3 mb-2">
-              <Calculator className="h-8 w-8 text-purple-600 dark:text-purple-400" />
-              <CardTitle className="text-2xl font-bold text-gray-900 dark:text-gray-100">Calculadora Ruffini</CardTitle>
+            <div className="flex items-center gap-4 mb-4">
+              <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl shadow-lg">
+                <Calculator className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <CardTitle className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
+                  Calculadora Ruffini
+                </CardTitle>
+                <CardDescription className="text-white/80 text-lg">
+                  Resuelve polinomios usando el método de Ruffini
+                </CardDescription>
+              </div>
             </div>
-            <CardDescription className="text-gray-600 dark:text-gray-300">
-              Ingresa los coeficientes del polinomio y el divisor para calcular usando el método de Ruffini
-            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <Label htmlFor="grado" className="text-gray-700 dark:text-gray-300">Grado del polinomio:</Label>
+          <CardContent className="space-y-8">
+            <div className="space-y-6">
+              <div className="flex items-center gap-4 bg-white/5 p-4 rounded-lg border border-white/10">
+                <Label htmlFor="grado" className="text-white text-lg">Grado del polinomio:</Label>
                 <Input
                   id="grado"
                   type="number"
@@ -230,11 +242,11 @@ export default function CalculadoraPage() {
                     setCoeficientes([])
                     setResultados(null)
                   }}
-                  className="max-w-[100px] bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700 focus:border-purple-500 dark:focus:border-purple-400"
+                  className="max-w-[100px] bg-white/10 border-white/20 text-white focus:border-purple-500 focus:ring-purple-500"
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white/20 dark:bg-gray-800/20 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white/5 p-6 rounded-lg border border-white/10 shadow-lg">
                 {generarInputsCoeficientes()}
               </div>
 
@@ -246,39 +258,73 @@ export default function CalculadoraPage() {
                     setError("")
                   }}
                   variant="outline"
-                  className="bg-white/50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+                  className="border-white/20 text-white hover:bg-white/10 backdrop-blur-sm"
                 >
                   Nueva ecuación
                 </Button>
+                <Button
+                  onClick={calcularRuffini}
+                  className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-bold shadow-lg hover:shadow-xl transition-all duration-300"
+                >
+                  Calcular
+                </Button>
               </div>
-
-
             </div>
 
             {error && (
-              <Alert variant="destructive" className="bg-red-500/20 border-red-500/50">
+              <Alert variant="destructive" className="bg-red-500/20 border-red-500/50 text-white">
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
 
-            <Button
-              onClick={calcularRuffini}
-              className="w-full bg-gradient-to-r from-purple-600 to-blue-600 dark:from-purple-500 dark:to-blue-500 hover:from-purple-700 hover:to-blue-700 dark:hover:from-purple-600 dark:hover:to-blue-600 text-white font-semibold py-6 shadow-lg transform transition-all duration-200 hover:scale-[1.02] focus:scale-[0.98]"
-            >
-              Calcular
-            </Button>
-
             {resultados && (
-              <div className="space-y-4 p-6 bg-white/30 dark:bg-gray-800/30 rounded-lg border border-gray-200 dark:border-gray-700 shadow-lg backdrop-blur-sm">
-                <div className="text-gray-900 dark:text-gray-100">
-                  <strong>Divisores encontrados:</strong> {resultados.divisores.join(", ")}
+              <div className="space-y-6 bg-white/5 p-6 rounded-lg border border-white/10">
+                <h3 className="text-xl font-semibold text-white mb-4">Resultados:</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <p className="text-white/80">Raíces encontradas:</p>
+                    <div className="bg-white/10 p-4 rounded-lg">
+                      {resultados.divisores.length > 0 ? (
+                        <ul className="list-disc list-inside space-y-1 text-white">
+                          {resultados.divisores.map((divisor, index) => (
+                            <li key={index}>x = {divisor}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-white/60">No se encontraron raíces reales</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-white/80">Factorización:</p>
+                    <div className="bg-white/10 p-4 rounded-lg">
+                      {resultados.factores.length > 0 ? (
+                        <div className="text-white font-mono">
+                          {coeficientes[0] !== 1 && coeficientes[0] !== -1 && (
+                            <span>{Math.abs(coeficientes[0])}</span>
+                          )}
+                          {coeficientes[0] === -1 && "-"}
+                          {resultados.factores.map((factor, index) => (
+                            <span key={index} dangerouslySetInnerHTML={{ __html: factor }} />
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-white/60">No se pudo factorizar completamente</p>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div className="text-gray-900 dark:text-gray-100">
-                  <strong>Factorización:</strong> <span dangerouslySetInnerHTML={{ __html: resultados.factores.join(" ") }} />
-                </div>
-                <div className="text-gray-900 dark:text-gray-100">
-                  <strong>Ecuación cuadrática restante:</strong> <span dangerouslySetInnerHTML={{ __html: resultados.ecuacionCuadratica }} />
-                </div>
+
+                {resultados.ecuacionCuadratica && resultados.ecuacionCuadratica !== "0" && (
+                  <div className="space-y-2">
+                    <p className="text-white/80">Polinomio restante:</p>
+                    <div className="bg-white/10 p-4 rounded-lg">
+                      <p className="text-white font-mono" dangerouslySetInnerHTML={{ __html: resultados.ecuacionCuadratica }} />
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
