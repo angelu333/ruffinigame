@@ -13,12 +13,76 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 
 // Tipos para nuestro quiz
 type Dificultad = "facil" | "medio" | "dificil"
+type TerminoPolinomio = {
+  coeficiente: number
+  exponente: number
+}
 type Pregunta = {
   id: number
-  enunciado: string
+  polinomio: TerminoPolinomio[]
+  divisor: number
   opciones: string[]
   respuestaCorrecta: number
   explicacion: string
+}
+
+// Componente para renderizar un término del polinomio con exponentes como superíndices
+function TerminoPolinomio({
+  coeficiente,
+  exponente,
+  esInicio,
+}: { coeficiente: number; exponente: number; esInicio: boolean }) {
+  if (coeficiente === 0) return null
+
+  // Determinar el signo
+  const signo = esInicio ? (coeficiente < 0 ? "-" : "") : coeficiente < 0 ? " - " : " + "
+
+  // Valor absoluto del coeficiente (para no mostrar el signo dos veces)
+  const valorAbs = Math.abs(coeficiente)
+
+  // Si el coeficiente es 1 y hay variable, no mostramos el 1
+  const mostrarCoef = valorAbs === 1 && exponente > 0 ? "" : valorAbs
+
+  // Determinar cómo mostrar la variable y el exponente
+  let variable: JSX.Element | null = null
+  if (exponente === 0) {
+    variable = null
+  } else if (exponente === 1) {
+    variable = "x"
+  } else {
+    // Usar un span en lugar de fragmentos JSX para mayor compatibilidad
+    variable = (
+      <span>
+        x<sup>{exponente}</sup>
+      </span>
+    )
+  }
+
+  return (
+    <span>
+      {signo}
+      {mostrarCoef}
+      {variable}
+    </span>
+  )
+}
+
+// Componente para renderizar un polinomio completo
+function Polinomio({ terminos }: { terminos: TerminoPolinomio[] }) {
+  if (terminos.length === 0) return <span>0</span>
+
+  return (
+    <span>
+      {terminos.map((termino, index) => (
+        <TerminoPolinomio
+          key={index}
+          coeficiente={termino.coeficiente}
+          exponente={termino.exponente}
+          esInicio={index === 0}
+        />
+      ))}
+    </span>
+  )
 }
 
 export default function QuizPage() {
@@ -34,87 +98,156 @@ export default function QuizPage() {
   const [mostrarFeedback, setMostrarFeedback] = useState(false)
 
   // Generar preguntas según la dificultad
+  const generarPreguntas = useCallback(() => {
+    try {
+      // Generamos preguntas dinámicamente
+      const generarPreguntaAleatoria = (dificultad: Dificultad): Pregunta => {
+        const grado = dificultad === "facil" ? 3 : dificultad === "medio" ? 4 : 5
+        const maxCoef = dificultad === "facil" ? 5 : dificultad === "medio" ? 8 : 10
+
+        // Generar coeficientes aleatorios
+        const coeficientes = Array.from(
+          { length: grado + 1 },
+          () => Math.floor(Math.random() * (maxCoef * 2 + 1)) - maxCoef,
+        )
+
+        // Asegurar que el coeficiente principal no sea 0
+        if (coeficientes[0] === 0) coeficientes[0] = 1
+
+        // Generar un divisor aleatorio que no sea 0
+        let divisor = 0
+        while (divisor === 0) {
+          divisor = Math.floor(Math.random() * 5) - 2
+        }
+
+        // Calcular el resultado usando Ruffini
+        const resultado = coeficientes.reduce((acc, coef) => acc * divisor + coef, 0)
+
+        // Generar opciones aleatorias únicas
+        const opcionesBase = new Set([resultado])
+        while (opcionesBase.size < 4) {
+          const opcion = resultado + Math.floor(Math.random() * 8) - 4
+          if (opcion !== resultado) {
+            opcionesBase.add(opcion)
+          }
+        }
+
+        // Mezclar opciones
+        const opciones = Array.from(opcionesBase)
+          .sort(() => Math.random() - 0.5)
+          .map(String)
+        const respuestaCorrecta = opciones.indexOf(String(resultado))
+
+        // Crear términos del polinomio para renderizado
+        const terminosPolinomio: TerminoPolinomio[] = coeficientes
+          .map((coef, index) => ({
+            coeficiente: coef,
+            exponente: grado - index,
+          }))
+          .filter((termino) => termino.coeficiente !== 0)
+
+        if (terminosPolinomio.length === 0) {
+          terminosPolinomio.push({ coeficiente: 0, exponente: 0 })
+        }
+
+        return {
+          id: Math.random(),
+          polinomio: terminosPolinomio,
+          divisor,
+          opciones,
+          respuestaCorrecta,
+          explicacion: `Al aplicar Ruffini con divisor (x${divisor >= 0 ? "-" : "+"}${Math.abs(divisor)}), el residuo es ${resultado}.`,
+        }
+      }
+
+      // Generar conjunto de preguntas según la dificultad
+      const nuevasPreguntas = Array.from({ length: 5 }, () => generarPreguntaAleatoria(dificultad))
+      setPreguntas(nuevasPreguntas)
+      setPreguntaActual(0)
+      setRespuestaSeleccionada(null)
+      setRespuestaEnviada(false)
+      setMostrarFeedback(false)
+    } catch (error) {
+      console.error("Error al generar preguntas:", error)
+    }
+  }, [dificultad])
+
   useEffect(() => {
     if (iniciado) {
       generarPreguntas()
     }
-  }, [iniciado, dificultad])
-
-  const generarPreguntas = () => {
+  }, [iniciado, generarPreguntas])
     try {
       // Generamos preguntas dinámicamente
       const generarPreguntaAleatoria = (dificultad: Dificultad): Pregunta => {
-        const grado = dificultad === "facil" ? 3 : dificultad === "medio" ? 4 : 5;
-        const maxCoef = dificultad === "facil" ? 5 : dificultad === "medio" ? 8 : 10;
-        
+        const grado = dificultad === "facil" ? 3 : dificultad === "medio" ? 4 : 5
+        const maxCoef = dificultad === "facil" ? 5 : dificultad === "medio" ? 8 : 10
+
         // Generar coeficientes aleatorios
-        const coeficientes = Array.from({length: grado + 1}, () => 
-          Math.floor(Math.random() * (maxCoef * 2 + 1)) - maxCoef
-        );
-        
+        const coeficientes = Array.from(
+          { length: grado + 1 },
+          () => Math.floor(Math.random() * (maxCoef * 2 + 1)) - maxCoef,
+        )
+
         // Asegurar que el coeficiente principal no sea 0
-        if (coeficientes[0] === 0) coeficientes[0] = 1;
-        
+        if (coeficientes[0] === 0) coeficientes[0] = 1
+
         // Generar un divisor aleatorio que no sea 0
-        let divisor = 0;
+        let divisor = 0
         while (divisor === 0) {
-          divisor = Math.floor(Math.random() * 5) - 2;
+          divisor = Math.floor(Math.random() * 5) - 2
         }
-        
+
         // Calcular el resultado usando Ruffini
-        const resultado = coeficientes.reduce((acc, coef) => acc * divisor + coef, 0);
-        
+        const resultado = coeficientes.reduce((acc, coef) => acc * divisor + coef, 0)
+
         // Generar opciones aleatorias únicas
-        const opcionesBase = new Set([resultado]);
+        const opcionesBase = new Set([resultado])
         while (opcionesBase.size < 4) {
-          const opcion = resultado + Math.floor(Math.random() * 8) - 4;
+          const opcion = resultado + Math.floor(Math.random() * 8) - 4
           if (opcion !== resultado) {
-            opcionesBase.add(opcion);
+            opcionesBase.add(opcion)
           }
         }
-        
+
         // Mezclar opciones
-        const opciones = Array.from(opcionesBase).sort(() => Math.random() - 0.5).map(String);
-        const respuestaCorrecta = opciones.indexOf(String(resultado));
-        
-        // Generar enunciado con formato mejorado
-        let polinomio = coeficientes.map((coef, index) => {
-          const exp = grado - index;
-          if (coef === 0) return "";
-          const signo = index === 0 ? (coef < 0 ? "-" : "") : (coef < 0 ? " - " : " + ");
-          const valor = Math.abs(coef) === 1 && exp > 0 ? "" : Math.abs(coef);
-          const variable = exp > 0 ? `x${exp > 1 ? `<sup>${exp}</sup>` : ""}` : "";
-          return `${signo}${valor}${variable}`;
-        }).filter(Boolean).join("");
-        
-        if (!polinomio) polinomio = "0";
-        
+        const opciones = Array.from(opcionesBase)
+          .sort(() => Math.random() - 0.5)
+          .map(String)
+        const respuestaCorrecta = opciones.indexOf(String(resultado))
+
+        // Crear términos del polinomio para renderizado
+        const terminosPolinomio: TerminoPolinomio[] = coeficientes
+          .map((coef, index) => ({
+            coeficiente: coef,
+            exponente: grado - index,
+          }))
+          .filter((termino) => termino.coeficiente !== 0)
+
+        if (terminosPolinomio.length === 0) {
+          terminosPolinomio.push({ coeficiente: 0, exponente: 0 })
+        }
+
         return {
           id: Math.random(),
-          enunciado: `¿Cuál es el residuo al dividir ${polinomio} entre (x ${divisor >= 0 ? '-' : '+'} ${Math.abs(divisor)})?`,
+          polinomio: terminosPolinomio,
+          divisor,
           opciones,
           respuestaCorrecta,
-          explicacion: `Al aplicar Ruffini con divisor (x${divisor >= 0 ? '-' : '+'}${Math.abs(divisor)}), el residuo es ${resultado}.`
-        };
-      };
+          explicacion: `Al aplicar Ruffini con divisor (x${divisor >= 0 ? "-" : "+"}${Math.abs(divisor)}), el residuo es ${resultado}.`,
+        }
+      }
 
       // Generar conjunto de preguntas según la dificultad
-      const nuevasPreguntas = Array.from({length: 5}, () => generarPreguntaAleatoria(dificultad));
-      setPreguntas(nuevasPreguntas);
-      setPreguntaActual(0);
-      setRespuestaSeleccionada(null);
-      setRespuestaEnviada(false);
-      setMostrarFeedback(false);
+      const nuevasPreguntas = Array.from({ length: 5 }, () => generarPreguntaAleatoria(dificultad))
+      setPreguntas(nuevasPreguntas)
+      setPreguntaActual(0)
+      setRespuestaSeleccionada(null)
+      setRespuestaEnviada(false)
+      setMostrarFeedback(false)
     } catch (error) {
-      console.error('Error al generar preguntas:', error);
+      console.error("Error al generar preguntas:", error)
     }
-  }
-
-    // Reiniciar estados
-    setPreguntaActual(0);
-    setRespuestaSeleccionada(null);
-    setRespuestaEnviada(false);
-    setMostrarFeedback(false);
   }
 
   const iniciarJuego = () => {
@@ -125,24 +258,24 @@ export default function QuizPage() {
   }
 
   const verificarRespuesta = () => {
-    if (respuestaSeleccionada === null || respuestaEnviada) return;
+    if (respuestaSeleccionada === null || respuestaEnviada) return
 
-    setRespuestaEnviada(true);
-    setMostrarFeedback(true);
+    setRespuestaEnviada(true)
+    setMostrarFeedback(true)
 
     if (respuestaSeleccionada === preguntas[preguntaActual]?.respuestaCorrecta) {
       // Respuesta correcta
-      const puntosGanados = dificultad === "facil" ? 10 : dificultad === "medio" ? 20 : 30;
-      setPuntuacion(prevPuntuacion => prevPuntuacion + puntosGanados);
+      const puntosGanados = dificultad === "facil" ? 10 : dificultad === "medio" ? 20 : 30
+      setPuntuacion((prevPuntuacion) => prevPuntuacion + puntosGanados)
     } else {
       // Respuesta incorrecta
-      setVidas(prevVidas => {
-        const nuevasVidas = prevVidas - 1;
+      setVidas((prevVidas) => {
+        const nuevasVidas = prevVidas - 1
         if (nuevasVidas <= 0) {
-          setJuegoTerminado(true);
+          setJuegoTerminado(true)
         }
-        return nuevasVidas;
-      });
+        return nuevasVidas
+      })
     }
   }
 
@@ -331,7 +464,7 @@ export default function QuizPage() {
           <div className="text-white font-bold">{puntuacion} puntos</div>
         </div>
 
-        <Progress value={(preguntaActual / preguntas.length) * 100} className="h-2 mb-6 bg-white/20" />
+        <Progress value={((preguntaActual + 1) / (preguntas.length || 1)) * 100} className="h-2 mb-6 bg-white/20" />
 
         <Card className="bg-white/10 backdrop-blur-lg border-white/20 text-white">
           <CardHeader>
@@ -346,7 +479,11 @@ export default function QuizPage() {
             <CardDescription className="text-white/70">Selecciona la respuesta correcta</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="text-lg font-medium">{preguntas[preguntaActual]?.enunciado}</div>
+            <div className="text-lg font-medium">
+              ¿Cuál es el residuo al dividir <Polinomio terminos={preguntas[preguntaActual]?.polinomio || []} /> entre
+              (x {preguntas[preguntaActual]?.divisor >= 0 ? "-" : "+"}{" "}
+              {Math.abs(preguntas[preguntaActual]?.divisor || 0)})?
+            </div>
 
             <RadioGroup
               value={respuestaSeleccionada?.toString()}
@@ -358,7 +495,7 @@ export default function QuizPage() {
               className="space-y-3"
               disabled={respuestaEnviada}
             >
-              {preguntas[preguntaActual]?.opciones.map((opcion, index) => (
+              {(preguntas[preguntaActual]?.opciones || []).map((opcion, index) => (
                 <div
                   key={index}
                   className={`flex items-center space-x-2 rounded-lg border border-white/30 p-4 transition-colors ${
@@ -384,18 +521,18 @@ export default function QuizPage() {
             {mostrarFeedback && (
               <Alert
                 className={`${
-                  respuestaSeleccionada === preguntas[preguntaActual].respuestaCorrecta
+                  respuestaSeleccionada === preguntas[preguntaActual]?.respuestaCorrecta
                     ? "bg-green-500/20 border-green-500/50"
                     : "bg-red-500/20 border-red-500/50"
                 }`}
               >
                 <AlertDescription>
                   <p className="font-bold mb-1">
-                    {respuestaSeleccionada === preguntas[preguntaActual].respuestaCorrecta
+                    {respuestaSeleccionada === preguntas[preguntaActual]?.respuestaCorrecta
                       ? "¡Correcto!"
                       : "Incorrecto"}
                   </p>
-                  <p>{preguntas[preguntaActual].explicacion}</p>
+                  <p>{preguntas[preguntaActual]?.explicacion || 'Explicación no disponible'}</p>
                 </AlertDescription>
               </Alert>
             )}
@@ -420,5 +557,4 @@ export default function QuizPage() {
     </div>
   )
 }
-
 
