@@ -22,7 +22,7 @@ export default function CalculadoraPage() {
       inputs.push(
         <div key={i} className="flex items-center gap-2">
           <Label htmlFor={`coef-${i}`} className="w-24 text-right text-gray-700 dark:text-gray-300">
-            {i > 0 ? `Coef. x${i > 1 ? `<sup>${i}</sup>` : ""}` : "Término ind."}:
+            <span dangerouslySetInnerHTML={{ __html: i > 0 ? `Coef. x${i > 1 ? `<sup>${i}</sup>` : ""}` : "Término ind." }} />:
           </Label>
           <Input
             id={`coef-${i}`}
@@ -46,12 +46,15 @@ export default function CalculadoraPage() {
     const absNumero = Math.abs(numero)
     
     for (let i = 1; i <= absNumero; i++) {
-      if (absNumero % i === 0) {
+      if (absNumero % i === 0 && Number.isInteger(absNumero / i)) {
         divisores.push(i)
         divisores.push(-i)
         if (i !== absNumero) {
-          divisores.push(absNumero / i)
-          divisores.push(-absNumero / i)
+          const cociente = absNumero / i
+          if (Number.isInteger(cociente)) {
+            divisores.push(cociente)
+            divisores.push(-cociente)
+          }
         }
       }
     }
@@ -70,9 +73,29 @@ export default function CalculadoraPage() {
     }
   }
 
+  const resolverEcuacionCuadratica = (a: number, b: number, c: number): number[] => {
+    if (Math.abs(a) < 1e-10) return []; // Evitar división por cero
+    const discriminante = b * b - 4 * a * c;
+    if (discriminante < 0) return [];
+    
+    const x1 = (-b + Math.sqrt(discriminante)) / (2 * a);
+    const x2 = (-b - Math.sqrt(discriminante)) / (2 * a);
+    return [x1, x2].filter(x => !isNaN(x) && isFinite(x));
+  }
+
   const calcularRuffini = () => {
     if (coeficientes.length !== grado + 1) {
       setError("Por favor, completa todos los coeficientes")
+      return
+    }
+
+    if (coeficientes.every(coef => coef === 0)) {
+      setError("El polinomio no puede tener todos los coeficientes iguales a 0")
+      return
+    }
+
+    if (Math.abs(coeficientes[0]) < 1e-10) {
+      setError("El coeficiente principal no puede ser 0")
       return
     }
 
@@ -84,7 +107,7 @@ export default function CalculadoraPage() {
     
     while (polinomioActual.length > 2) { // Continuar hasta llegar a lineal
       const terminoIndependiente = polinomioActual[polinomioActual.length - 1]
-      if (terminoIndependiente === 0) {
+      if (Math.abs(terminoIndependiente) < 1e-10) {
         divisoresEncontrados.push(0)
         const binomio = "(x)"
         binomiosRepetidos.set(binomio, (binomiosRepetidos.get(binomio) || 0) + 1)
@@ -108,7 +131,19 @@ export default function CalculadoraPage() {
       }
       
       if (!encontrado) {
-        break
+        if (polinomioActual.length === 3) {
+          // Resolver ecuación cuadrática restante
+          const [a, b, c] = polinomioActual;
+          const raices = resolverEcuacionCuadratica(a, b, c);
+          raices.forEach(raiz => {
+            if (!isNaN(raiz)) {
+              divisoresEncontrados.push(raiz);
+              const binomio = `(x ${raiz >= 0 ? '-' : '+'} ${Math.abs(raiz)})`;
+              binomiosRepetidos.set(binomio, (binomiosRepetidos.get(binomio) || 0) + 1);
+            }
+          });
+        }
+        break;
       }
     }
 
@@ -124,29 +159,31 @@ export default function CalculadoraPage() {
   }
 
   const mostrarPolinomio = (coefs: number[]) => {
+    if (!coefs || coefs.length === 0) return "0"
+    
     let polinomio = ""
     const gradoCociente = coefs.length - 1
 
     coefs.forEach((coef, index) => {
       const exponente = gradoCociente - index
+      if (Math.abs(coef) < 1e-10) return // Skip terms with coefficient ≈ 0
 
-      if (coef !== 0) {
-        if (polinomio.length > 0) {
-          polinomio += coef > 0 ? " + " : " - "
-        } else if (coef < 0) {
-          polinomio += "-"
-        }
+      if (polinomio.length > 0) {
+        polinomio += coef > 0 ? " + " : " - "
+      } else if (coef < 0) {
+        polinomio += "-"
+      }
 
-        const valorAbs = Math.abs(coef)
-        if (exponente === 0 || valorAbs !== 1) {
-          polinomio += valorAbs
-        }
+      const valorAbs = Math.abs(coef)
+      // Show coefficient if it's not 1 or if it's the constant term
+      if (exponente === 0 || Math.abs(valorAbs - 1) > 1e-10) {
+        polinomio += valorAbs.toFixed(Math.abs(valorAbs) < 1 ? 2 : 0)
+      }
 
-        if (exponente > 0) {
-          polinomio += "x"
-          if (exponente > 1) {
-            polinomio += `<sup>${exponente}</sup>`
-          }
+      if (exponente > 0) {
+        polinomio += "x"
+        if (exponente > 1) {
+          polinomio += `<sup>${exponente}</sup>`
         }
       }
     })
@@ -197,7 +234,23 @@ export default function CalculadoraPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{generarInputsCoeficientes()}</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white/20 dark:bg-gray-800/20 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+                {generarInputsCoeficientes()}
+              </div>
+
+              <div className="flex gap-4 justify-end">
+                <Button
+                  onClick={() => {
+                    setCoeficientes([])
+                    setResultados(null)
+                    setError("")
+                  }}
+                  variant="outline"
+                  className="bg-white/50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+                >
+                  Nueva ecuación
+                </Button>
+              </div>
 
 
             </div>
@@ -210,21 +263,21 @@ export default function CalculadoraPage() {
 
             <Button
               onClick={calcularRuffini}
-              className="w-full bg-purple-600 dark:bg-purple-500 hover:bg-purple-700 dark:hover:bg-purple-600 text-white font-semibold py-6"
+              className="w-full bg-gradient-to-r from-purple-600 to-blue-600 dark:from-purple-500 dark:to-blue-500 hover:from-purple-700 hover:to-blue-700 dark:hover:from-purple-600 dark:hover:to-blue-600 text-white font-semibold py-6 shadow-lg transform transition-all duration-200 hover:scale-[1.02] focus:scale-[0.98]"
             >
               Calcular
             </Button>
 
             {resultados && (
-              <div className="space-y-4 p-4 bg-white/30 dark:bg-gray-800/30 rounded-lg border border-gray-200 dark:border-gray-700">
+              <div className="space-y-4 p-6 bg-white/30 dark:bg-gray-800/30 rounded-lg border border-gray-200 dark:border-gray-700 shadow-lg backdrop-blur-sm">
                 <div className="text-gray-900 dark:text-gray-100">
                   <strong>Divisores encontrados:</strong> {resultados.divisores.join(", ")}
                 </div>
                 <div className="text-gray-900 dark:text-gray-100">
-                  <strong>Factorización:</strong> {resultados.factores.join(" ")}
+                  <strong>Factorización:</strong> <span dangerouslySetInnerHTML={{ __html: resultados.factores.join(" ") }} />
                 </div>
                 <div className="text-gray-900 dark:text-gray-100">
-                  <strong>Ecuación cuadrática restante:</strong> {resultados.ecuacionCuadratica}
+                  <strong>Ecuación cuadrática restante:</strong> <span dangerouslySetInnerHTML={{ __html: resultados.ecuacionCuadratica }} />
                 </div>
               </div>
             )}

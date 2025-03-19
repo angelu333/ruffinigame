@@ -41,140 +41,80 @@ export default function QuizPage() {
   }, [iniciado, dificultad])
 
   const generarPreguntas = () => {
-    // En un caso real, estas preguntas vendrían de una API o base de datos
-    // Aquí las generamos de forma estática para el ejemplo
+    try {
+      // Generamos preguntas dinámicamente
+      const generarPreguntaAleatoria = (dificultad: Dificultad): Pregunta => {
+        const grado = dificultad === "facil" ? 3 : dificultad === "medio" ? 4 : 5;
+        const maxCoef = dificultad === "facil" ? 5 : dificultad === "medio" ? 8 : 10;
+        
+        // Generar coeficientes aleatorios
+        const coeficientes = Array.from({length: grado + 1}, () => 
+          Math.floor(Math.random() * (maxCoef * 2 + 1)) - maxCoef
+        );
+        
+        // Asegurar que el coeficiente principal no sea 0
+        if (coeficientes[0] === 0) coeficientes[0] = 1;
+        
+        // Generar un divisor aleatorio que no sea 0
+        let divisor = 0;
+        while (divisor === 0) {
+          divisor = Math.floor(Math.random() * 5) - 2;
+        }
+        
+        // Calcular el resultado usando Ruffini
+        const resultado = coeficientes.reduce((acc, coef) => acc * divisor + coef, 0);
+        
+        // Generar opciones aleatorias únicas
+        const opcionesBase = new Set([resultado]);
+        while (opcionesBase.size < 4) {
+          const opcion = resultado + Math.floor(Math.random() * 8) - 4;
+          if (opcion !== resultado) {
+            opcionesBase.add(opcion);
+          }
+        }
+        
+        // Mezclar opciones
+        const opciones = Array.from(opcionesBase).sort(() => Math.random() - 0.5).map(String);
+        const respuestaCorrecta = opciones.indexOf(String(resultado));
+        
+        // Generar enunciado con formato mejorado
+        let polinomio = coeficientes.map((coef, index) => {
+          const exp = grado - index;
+          if (coef === 0) return "";
+          const signo = index === 0 ? (coef < 0 ? "-" : "") : (coef < 0 ? " - " : " + ");
+          const valor = Math.abs(coef) === 1 && exp > 0 ? "" : Math.abs(coef);
+          const variable = exp > 0 ? `x${exp > 1 ? `<sup>${exp}</sup>` : ""}` : "";
+          return `${signo}${valor}${variable}`;
+        }).filter(Boolean).join("");
+        
+        if (!polinomio) polinomio = "0";
+        
+        return {
+          id: Math.random(),
+          enunciado: `¿Cuál es el residuo al dividir ${polinomio} entre (x ${divisor >= 0 ? '-' : '+'} ${Math.abs(divisor)})?`,
+          opciones,
+          respuestaCorrecta,
+          explicacion: `Al aplicar Ruffini con divisor (x${divisor >= 0 ? '-' : '+'}${Math.abs(divisor)}), el residuo es ${resultado}.`
+        };
+      };
 
-    const preguntasPorDificultad: Record<Dificultad, Pregunta[]> = {
-      facil: [
-        {
-          id: 1,
-          enunciado: "Si dividimos x³ + 2x² - 5x + 2 entre (x - 1) usando Ruffini, ¿cuál es el residuo?",
-          opciones: ["0", "2", "4", "6"],
-          respuestaCorrecta: 0,
-          explicacion:
-            "Al aplicar Ruffini con divisor (x-1), obtenemos un residuo de 0, lo que significa que (x-1) es un factor del polinomio.",
-        },
-        {
-          id: 2,
-          enunciado: "¿Cuál es el cociente al dividir x³ - 6x² + 11x - 6 entre (x - 2)?",
-          opciones: ["x² - 4x + 3", "x² - 4x + 5", "x² - 2x + 3", "x² - 4x - 3"],
-          respuestaCorrecta: 0,
-          explicacion: "Aplicando Ruffini con divisor (x-2), el cociente es x² - 4x + 3.",
-        },
-        {
-          id: 3,
-          enunciado: "Si P(x) = x³ - 3x² + 3x - 1, ¿cuál es el valor de P(1)?",
-          opciones: ["0", "1", "2", "3"],
-          respuestaCorrecta: 0,
-          explicacion: "P(1) es el residuo al dividir P(x) entre (x-1). Aplicando Ruffini, obtenemos un residuo de 0.",
-        },
-        {
-          id: 4,
-          enunciado: "¿Cuál es el residuo al dividir x⁴ - 16 entre (x - 2)?",
-          opciones: ["0", "8", "16", "32"],
-          respuestaCorrecta: 0,
-          explicacion:
-            "Aplicando Ruffini con divisor (x-2), el residuo es 0, lo que significa que (x-2) es un factor del polinomio.",
-        },
-        {
-          id: 5,
-          enunciado: "Si dividimos x³ - 4x² + x + 6 entre (x + 1), ¿cuál es el residuo?",
-          opciones: ["0", "2", "4", "6"],
-          respuestaCorrecta: 2,
-          explicacion: "Al aplicar Ruffini con divisor (x+1) o (x-(-1)), obtenemos un residuo de 4.",
-        },
-      ],
-      medio: [
-        {
-          id: 1,
-          enunciado: "Si P(x) = x⁴ - 2x³ - 3x² + 4x + 4, ¿cuál es el cociente al dividir entre (x + 1)?",
-          opciones: ["x³ - 3x² + 0x + 4", "x³ - 3x² - 3x + 1", "x³ - 3x² + 0x + 0", "x³ - 3x² + 0x - 4"],
-          respuestaCorrecta: 1,
-          explicacion: "Aplicando Ruffini con divisor (x+1) o (x-(-1)), el cociente es x³ - 3x² - 3x + 1.",
-        },
-        {
-          id: 2,
-          enunciado: "¿Cuál es el residuo al dividir 2x⁴ - 3x³ + 4x² - 5x + 6 entre (x - 2)?",
-          opciones: ["24", "32", "36", "40"],
-          respuestaCorrecta: 2,
-          explicacion: "Aplicando Ruffini con divisor (x-2), el residuo es 36.",
-        },
-        {
-          id: 3,
-          enunciado: "Si dividimos x⁵ - 32 entre (x - 2), ¿cuál es el cociente?",
-          opciones: [
-            "x⁴ + 2x³ + 4x² + 8x + 16",
-            "x⁴ - 2x³ + 4x² - 8x + 16",
-            "x⁴ + 2x³ + 4x² + 8x - 16",
-            "x⁴ - 2x³ - 4x² - 8x - 16",
-          ],
-          respuestaCorrecta: 0,
-          explicacion: "Aplicando Ruffini con divisor (x-2), el cociente es x⁴ + 2x³ + 4x² + 8x + 16.",
-        },
-        {
-          id: 4,
-          enunciado: "¿Cuáles son las raíces del polinomio P(x) = x³ - 6x² + 11x - 6?",
-          opciones: ["1, 2 y 3", "1, 2 y -3", "-1, 2 y 3", "-1, -2 y -3"],
-          respuestaCorrecta: 0,
-          explicacion: "Aplicando Ruffini sucesivamente, encontramos que las raíces son 1, 2 y 3.",
-        },
-        {
-          id: 5,
-          enunciado: "Si P(x) = x⁴ - 5x³ + 5x² + 5x - 6, ¿cuál es el valor de P(2)?",
-          opciones: ["0", "2", "4", "6"],
-          respuestaCorrecta: 0,
-          explicacion: "P(2) es el residuo al dividir P(x) entre (x-2). Aplicando Ruffini, obtenemos un residuo de 0.",
-        },
-      ],
-      dificil: [
-        {
-          id: 1,
-          enunciado: "Si P(x) = x⁵ - 3x⁴ + 3x³ - 3x² + 2x - 6, ¿cuál es el residuo al dividir entre (x - 3)?",
-          opciones: ["0", "120", "240", "360"],
-          respuestaCorrecta: 2,
-          explicacion: "Aplicando Ruffini con divisor (x-3), el residuo es 240.",
-        },
-        {
-          id: 2,
-          enunciado: "¿Cuál es el cociente al dividir x⁵ - x⁴ - 19x³ + 19x² + 30x - 30 entre (x² - 1)?",
-          opciones: ["x³ - x² - 18x + 30", "x³ - 18x + 30", "x³ - x² - 20x + 30", "x³ - 20x + 30"],
-          respuestaCorrecta: 0,
-          explicacion:
-            "Para dividir entre (x² - 1), podemos factorizar como (x-1)(x+1) y aplicar Ruffini dos veces, obteniendo x³ - x² - 18x + 30.",
-        },
-        {
-          id: 3,
-          enunciado: "Si P(x) = 2x⁴ - 3x³ + 4x² - 5x + 6, ¿cuál es el valor de P(-1)?",
-          opciones: ["10", "14", "18", "20"],
-          respuestaCorrecta: 3,
-          explicacion:
-            "P(-1) es el residuo al dividir P(x) entre (x-(-1)) o (x+1). Aplicando Ruffini, obtenemos un residuo de 20.",
-        },
-        {
-          id: 4,
-          enunciado: "¿Cuál es el residuo al dividir x⁵ + 3x⁴ - 5x³ - 15x² + 4x + 12 entre (x + 2)?",
-          opciones: ["0", "4", "8", "12"],
-          respuestaCorrecta: 0,
-          explicacion:
-            "Aplicando Ruffini con divisor (x+2) o (x-(-2)), el residuo es 0, lo que significa que (x+2) es un factor del polinomio.",
-        },
-        {
-          id: 5,
-          enunciado: "Si dividimos x⁴ - 81 entre (x - 3), ¿cuál es el cociente?",
-          opciones: ["x³ + 3x² + 9x + 27", "x³ - 3x² + 9x - 27", "x³ + 3x² + 9x - 27", "x³ - 3x² - 9x - 27"],
-          respuestaCorrecta: 0,
-          explicacion: "Aplicando Ruffini con divisor (x-3), el cociente es x³ + 3x² + 9x + 27.",
-        },
-      ],
+      // Generar conjunto de preguntas según la dificultad
+      const nuevasPreguntas = Array.from({length: 5}, () => generarPreguntaAleatoria(dificultad));
+      setPreguntas(nuevasPreguntas);
+      setPreguntaActual(0);
+      setRespuestaSeleccionada(null);
+      setRespuestaEnviada(false);
+      setMostrarFeedback(false);
+    } catch (error) {
+      console.error('Error al generar preguntas:', error);
     }
+  }
 
-    // Seleccionar 5 preguntas aleatorias para la dificultad actual
-    const preguntasDisponibles = preguntasPorDificultad[dificultad]
-    setPreguntas(preguntasDisponibles)
-    setPreguntaActual(0)
-    setRespuestaSeleccionada(null)
-    setRespuestaEnviada(false)
-    setMostrarFeedback(false)
+    // Reiniciar estados
+    setPreguntaActual(0);
+    setRespuestaSeleccionada(null);
+    setRespuestaEnviada(false);
+    setMostrarFeedback(false);
   }
 
   const iniciarJuego = () => {
@@ -185,21 +125,24 @@ export default function QuizPage() {
   }
 
   const verificarRespuesta = () => {
-    if (respuestaSeleccionada === null) return
+    if (respuestaSeleccionada === null || respuestaEnviada) return;
 
-    setRespuestaEnviada(true)
-    setMostrarFeedback(true)
+    setRespuestaEnviada(true);
+    setMostrarFeedback(true);
 
-    if (respuestaSeleccionada === preguntas[preguntaActual].respuestaCorrecta) {
+    if (respuestaSeleccionada === preguntas[preguntaActual]?.respuestaCorrecta) {
       // Respuesta correcta
-      const puntosGanados = dificultad === "facil" ? 10 : dificultad === "medio" ? 20 : 30
-      setPuntuacion(puntuacion + puntosGanados)
+      const puntosGanados = dificultad === "facil" ? 10 : dificultad === "medio" ? 20 : 30;
+      setPuntuacion(prevPuntuacion => prevPuntuacion + puntosGanados);
     } else {
       // Respuesta incorrecta
-      setVidas(vidas - 1)
-      if (vidas <= 1) {
-        setJuegoTerminado(true)
-      }
+      setVidas(prevVidas => {
+        const nuevasVidas = prevVidas - 1;
+        if (nuevasVidas <= 0) {
+          setJuegoTerminado(true);
+        }
+        return nuevasVidas;
+      });
     }
   }
 
