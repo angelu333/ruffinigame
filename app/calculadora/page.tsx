@@ -29,7 +29,7 @@ export default function CalculadoraPage() {
             id={`coef-${i}`}
             type="number"
             placeholder="0"
-            className="max-w-[120px] bg-white/20 text-white"
+            className="max-w-[120px] bg-white text-black"
             onChange={(e) => {
               const newCoeficientes = [...coeficientes]
               newCoeficientes[grado - i] = Number.parseFloat(e.target.value) || 0
@@ -146,7 +146,7 @@ export default function CalculadoraPage() {
                       setCoeficientes([])
                       setResultado(null)
                     }}
-                    className="max-w-[100px] bg-white/20 text-white"
+                    className="max-w-[100px] bg-white text-black"
                   />
                 </div>
 
@@ -160,7 +160,7 @@ export default function CalculadoraPage() {
                     id="divisor"
                     type="number"
                     placeholder="0"
-                    className="max-w-[120px] bg-white/20 text-white"
+                    className="max-w-[120px] bg-white text-black"
                     onChange={(e) => setDivisor(Number.parseFloat(e.target.value) || 0)}
                   />
                 </div>
