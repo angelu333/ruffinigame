@@ -41,7 +41,7 @@ export default function CalculadoraPage() {
             className="max-w-[120px] bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-purple-500 focus:ring-purple-500"
             onChange={(e) => {
               const newCoeficientes = [...coeficientes]
-              newCoeficientes[grado - i] = Number.parseFloat(e.target.value) || 0
+              newCoeficientes[grado - i] = e.target.value === "" ? 0 : Number(e.target.value)
               setCoeficientes(newCoeficientes)
             }}
           />
@@ -54,7 +54,7 @@ export default function CalculadoraPage() {
   // Función para encontrar los divisores de un número
   const encontrarDivisores = (n: number): number[] => {
     const divisores: number[] = []
-    const nAbs = Math.abs(n)
+    const nAbs = Math.round(Math.abs(n)) // Redondeamos para asegurar números enteros
     
     // Solo consideramos divisores enteros
     for (let i = 1; i <= Math.sqrt(nAbs); i++) {
@@ -87,7 +87,11 @@ export default function CalculadoraPage() {
       residuo = residuo * a + coeficientes[i]
     }
 
-    return { cociente, residuo }
+    // Redondear los coeficientes y el residuo para evitar errores de punto flotante
+    return {
+      cociente: cociente.map(c => Math.round(c)),
+      residuo: Math.round(residuo)
+    }
   }
 
   // Función para factorizar un polinomio
@@ -162,6 +166,39 @@ export default function CalculadoraPage() {
     return [x1, x2].filter(x => !isNaN(x) && isFinite(x));
   }
 
+  const mostrarPolinomio = (coefs: number[]) => {
+    if (!coefs || coefs.length === 0) return "0"
+    
+    let polinomio = ""
+    const gradoCociente = coefs.length - 1
+
+    coefs.forEach((coef, index) => {
+      if (coef === 0) return // Skip zero coefficients
+
+      const exponente = gradoCociente - index
+      
+      if (polinomio.length > 0) {
+        polinomio += coef > 0 ? " + " : " - "
+      } else if (coef < 0) {
+        polinomio += "-"
+      }
+
+      const valorAbs = Math.abs(coef)
+      if (exponente === 0 || valorAbs !== 1) {
+        polinomio += valorAbs
+      }
+
+      if (exponente > 0) {
+        polinomio += "x"
+        if (exponente > 1) {
+          polinomio += `<sup>${exponente}</sup>`
+        }
+      }
+    })
+
+    return polinomio.length > 0 ? polinomio : "0"
+  }
+
   const calcularRuffini = () => {
     if (coeficientes.length !== grado + 1) {
       setError("Por favor, completa todos los coeficientes")
@@ -179,14 +216,19 @@ export default function CalculadoraPage() {
     }
 
     setError("")
-    let polinomioActual = [...coeficientes]
+    // Asegurarnos de que todos los coeficientes sean números enteros
+    let polinomioActual = coeficientes.map(c => Math.round(Number(c) || 0))
     const factores: string[] = []
     const divisoresEncontrados: number[] = []
     const binomiosRepetidos = new Map<string, number>()
     
-    while (polinomioActual.length > 2) { // Continuar hasta llegar a lineal
+    // Guardamos el coeficiente principal original
+    const coefPrincipal = polinomioActual[0]
+    
+    while (polinomioActual.length > 1) {
       const terminoIndependiente = polinomioActual[polinomioActual.length - 1]
-      if (Math.abs(terminoIndependiente) < 1e-10) {
+      
+      if (terminoIndependiente === 0) {
         divisoresEncontrados.push(0)
         const binomio = "(x)"
         binomiosRepetidos.set(binomio, (binomiosRepetidos.get(binomio) || 0) + 1)
@@ -199,7 +241,7 @@ export default function CalculadoraPage() {
       
       for (const divisor of divisores) {
         const resultado = dividirRuffini(polinomioActual, divisor)
-        if (Math.abs(resultado.residuo) < 0.0001) { // Usamos una pequeña tolerancia
+        if (resultado.residuo === 0) {
           polinomioActual = resultado.cociente
           divisoresEncontrados.push(divisor)
           const binomio = `(x ${divisor >= 0 ? '-' : '+'} ${Math.abs(divisor)})`
@@ -210,74 +252,62 @@ export default function CalculadoraPage() {
       }
       
       if (!encontrado) {
+        // Si el polinomio es de grado 2, intentamos factorizarlo
         if (polinomioActual.length === 3) {
-          // Resolver ecuación cuadrática restante
-          const [a, b, c] = polinomioActual;
-          const raices = resolverEcuacionCuadratica(a, b, c);
-          raices.forEach((raiz: number) => {
-            if (!isNaN(raiz) && Number.isInteger(raiz)) { // Solo consideramos raíces enteras
-              divisoresEncontrados.push(raiz);
-              const binomio = `(x ${raiz >= 0 ? '-' : '+'} ${Math.abs(raiz)})`;
-              binomiosRepetidos.set(binomio, (binomiosRepetidos.get(binomio) || 0) + 1);
+          const [a, b, c] = polinomioActual
+          const discriminante = b * b - 4 * a * c
+          if (discriminante > 0) {
+            const sqrtDisc = Math.sqrt(discriminante)
+            if (Number.isInteger(sqrtDisc)) {
+              const x1 = (-b + sqrtDisc) / (2 * a)
+              const x2 = (-b - sqrtDisc) / (2 * a)
+              if (Number.isInteger(x1) && Number.isInteger(x2)) {
+                const binomio1 = `(x ${x1 >= 0 ? '-' : '+'} ${Math.abs(x1)})`
+                const binomio2 = `(x ${x2 >= 0 ? '-' : '+'} ${Math.abs(x2)})`
+                binomiosRepetidos.set(binomio1, (binomiosRepetidos.get(binomio1) || 0) + 1)
+                binomiosRepetidos.set(binomio2, (binomiosRepetidos.get(binomio2) || 0) + 1)
+                polinomioActual = [1]
+                continue
+              }
             }
-          });
+          }
         }
-        break;
+        break
       }
     }
 
-    // Si quedó un polinomio de grado 1, lo agregamos como factor
-    if (polinomioActual.length === 2) {
-      const [a, b] = polinomioActual;
-      if (Math.abs(a) > 0.0001) {
-        const factor = `(${a}x ${b >= 0 ? '+' : ''} ${b})`;
-        factores.push(factor);
-      }
-    }
-
+    // Construir la respuesta final
+    let respuestaFinal = ""
     const factoresConExponentes = Array.from(binomiosRepetidos.entries()).map(([binomio, repeticiones]) => {
       return repeticiones > 1 ? `${binomio}<sup>${repeticiones}</sup>` : binomio
     })
 
+    if (factoresConExponentes.length > 0) {
+      respuestaFinal = factoresConExponentes.join(' ')
+      if (polinomioActual.length > 1) {
+        const polinomioRestante = mostrarPolinomio(polinomioActual)
+        if (polinomioRestante !== "1" && polinomioRestante !== "0") {
+          respuestaFinal += ` × (${polinomioRestante})`
+        }
+      }
+    } else {
+      respuestaFinal = mostrarPolinomio(polinomioActual)
+    }
+
+    // Agregar el coeficiente principal si es diferente de 1 o -1
+    if (Math.abs(coefPrincipal) !== 1) {
+      respuestaFinal = `${Math.abs(coefPrincipal)}${respuestaFinal}`
+    }
+    if (coefPrincipal < 0) {
+      respuestaFinal = `-${respuestaFinal}`
+    }
+
     setResultados({
       divisores: divisoresEncontrados,
       factores: factoresConExponentes,
-      ecuacionCuadratica: mostrarPolinomio(polinomioActual)
+      ecuacionCuadratica: respuestaFinal
     })
     setShowModal(true)
-  }
-
-  const mostrarPolinomio = (coefs: number[]) => {
-    if (!coefs || coefs.length === 0) return "0"
-    
-    let polinomio = ""
-    const gradoCociente = coefs.length - 1
-
-    coefs.forEach((coef, index) => {
-      const exponente = gradoCociente - index
-      if (Math.abs(coef) < 1e-10) return // Skip terms with coefficient ≈ 0
-
-      if (polinomio.length > 0) {
-        polinomio += coef > 0 ? " + " : " - "
-      } else if (coef < 0) {
-        polinomio += "-"
-      }
-
-      const valorAbs = Math.abs(coef)
-      // Show coefficient if it's not 1 or if it's the constant term
-      if (exponente === 0 || Math.abs(valorAbs - 1) > 1e-10) {
-        polinomio += valorAbs.toFixed(Math.abs(valorAbs) < 1 ? 2 : 0)
-      }
-
-      if (exponente > 0) {
-        polinomio += "x"
-        if (exponente > 1) {
-          polinomio += `<sup>${exponente}</sup>`
-        }
-      }
-    })
-
-    return polinomio.length > 0 ? polinomio : "0"
   }
 
   const limpiarCampos = () => {
@@ -409,14 +439,9 @@ export default function CalculadoraPage() {
                         <p>Factores: {resultados.factores.map((factor, index) => (
                           <span key={index}>
                             {index > 0 && " × "}
-                            {factor.includes("<sup>") ? (
-                              <span dangerouslySetInnerHTML={{ __html: factor }} />
-                            ) : (
-                              factor
-                            )}
+                            <span dangerouslySetInnerHTML={{ __html: factor }} />
                           </span>
                         ))}</p>
-                        <p>Ecuación cuadrática: <span dangerouslySetInnerHTML={{ __html: resultados.ecuacionCuadratica }} /></p>
                       </div>
                     </div>
                   </motion.div>
@@ -466,19 +491,15 @@ export default function CalculadoraPage() {
                       {resultados.factores.map((factor, index) => (
                         <span key={index}>
                           {index > 0 && " × "}
-                          {factor.includes("<sup>") ? (
-                            <span dangerouslySetInnerHTML={{ __html: factor }} />
-                          ) : (
-                            factor
-                          )}
+                          <span dangerouslySetInnerHTML={{ __html: factor }} />
                         </span>
                       ))}
                     </p>
                   </div>
                   
                   <div>
-                    <h3 className="text-lg font-semibold mb-2">Ecuación cuadrática:</h3>
-                    <p dangerouslySetInnerHTML={{ __html: resultados.ecuacionCuadratica }} />
+                    <h3 className="text-lg font-semibold mb-2 text-xl text-purple-300">RESPUESTA FINAL:</h3>
+                    <p className="text-lg" dangerouslySetInnerHTML={{ __html: resultados.ecuacionCuadratica }} />
                   </div>
                 </div>
               </motion.div>
