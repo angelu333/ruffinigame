@@ -7,13 +7,15 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { ArrowLeft, Calculator } from "lucide-react"
+import { ArrowLeft, Calculator, X } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
 
 export default function CalculadoraPage() {
   const [grado, setGrado] = useState<number>(3)
   const [coeficientes, setCoeficientes] = useState<number[]>([])
   const [resultados, setResultados] = useState<{divisores: number[]; factores: string[]; ecuacionCuadratica: string} | null>(null)
-  const [error, setError] = useState<string>("");
+  const [error, setError] = useState<string>("")
+  const [showModal, setShowModal] = useState(false)
 
   // Generar inputs para coeficientes basados en el grado
   const generarInputsCoeficientes = () => {
@@ -35,6 +37,7 @@ export default function CalculadoraPage() {
             id={`coef-${i}`}
             type="number"
             placeholder="0"
+            value={coeficientes[grado - i] || ""}
             className="max-w-[120px] bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-purple-500 focus:ring-purple-500"
             onChange={(e) => {
               const newCoeficientes = [...coeficientes]
@@ -48,38 +51,107 @@ export default function CalculadoraPage() {
     return inputs
   }
 
-  const encontrarDivisores = (numero: number): number[] => {
+  // Función para encontrar los divisores de un número
+  const encontrarDivisores = (n: number): number[] => {
     const divisores: number[] = []
-    const absNumero = Math.abs(numero)
+    const nAbs = Math.abs(n)
     
-    for (let i = 1; i <= absNumero; i++) {
-      if (absNumero % i === 0 && Number.isInteger(absNumero / i)) {
+    // Solo consideramos divisores enteros
+    for (let i = 1; i <= Math.sqrt(nAbs); i++) {
+      if (nAbs % i === 0) {
         divisores.push(i)
-        divisores.push(-i)
-        if (i !== absNumero) {
-          const cociente = absNumero / i
-          if (Number.isInteger(cociente)) {
-            divisores.push(cociente)
-            divisores.push(-cociente)
-          }
+        if (i !== nAbs / i) {
+          divisores.push(nAbs / i)
         }
       }
     }
     
-    return [...new Set(divisores)].sort((a, b) => a - b)
+    // Agregamos los divisores negativos
+    const divisoresNegativos = divisores.map(d => -d)
+    return [...divisores, ...divisoresNegativos].sort((a, b) => a - b)
   }
 
-  const evaluarRuffini = (coefs: number[], divisor: number): { cociente: number[]; residuo: number } => {
-    const cociente = [coefs[0]]
-    for (let i = 1; i <= coefs.length - 1; i++) {
-      cociente[i] = coefs[i] + cociente[i - 1] * divisor
-    }
-    return {
-      cociente: cociente.slice(0, -1),
-      residuo: cociente[cociente.length - 1]
-    }
+  // Función para evaluar un polinomio en un punto
+  const evaluarPolinomio = (coeficientes: number[], x: number): number => {
+    return coeficientes.reduce((acc, coef, i) => acc + coef * Math.pow(x, coeficientes.length - 1 - i), 0)
   }
 
+  // Función para dividir un polinomio por (x - a) usando Ruffini
+  const dividirRuffini = (coeficientes: number[], a: number): { cociente: number[], residuo: number } => {
+    const n = coeficientes.length
+    const cociente = new Array(n - 1).fill(0)
+    let residuo = coeficientes[0]
+
+    for (let i = 1; i < n; i++) {
+      cociente[i - 1] = residuo
+      residuo = residuo * a + coeficientes[i]
+    }
+
+    return { cociente, residuo }
+  }
+
+  // Función para factorizar un polinomio
+  const factorizarPolinomio = (coeficientes: number[]): { factores: string[], explicacion: string[] } => {
+    const factores: string[] = []
+    const explicacion: string[] = []
+    let polinomioActual = [...coeficientes]
+    let grado = polinomioActual.length - 1
+
+    // Si el polinomio es de grado 0, retornamos el polinomio original
+    if (grado === 0) {
+      return {
+        factores: [coeficientes[0].toString()],
+        explicacion: ["El polinomio es una constante y no puede factorizarse más."]
+      }
+    }
+
+    // Encontrar divisores del término independiente
+    const divisores = encontrarDivisores(polinomioActual[polinomioActual.length - 1])
+    explicacion.push(`Buscando divisores del término independiente (${polinomioActual[polinomioActual.length - 1]}): ${divisores.join(", ")}`)
+
+    // Intentar cada divisor
+    for (const divisor of divisores) {
+      const { residuo } = dividirRuffini(polinomioActual, divisor)
+      
+      if (Math.abs(residuo) < 0.0001) { // Usamos una pequeña tolerancia para comparaciones de punto flotante
+        // Encontramos una raíz
+        const factor = divisor >= 0 ? `(x - ${divisor})` : `(x + ${Math.abs(divisor)})`
+        factores.push(factor)
+        explicacion.push(`Encontramos una raíz: x = ${divisor}`)
+        
+        // Actualizar el polinomio para seguir factorizando
+        const { cociente } = dividirRuffini(polinomioActual, divisor)
+        polinomioActual = cociente
+        grado--
+        
+        // Si el polinomio resultante es de grado 1, agregamos el último factor
+        if (grado === 1) {
+          const a = polinomioActual[0]
+          const b = polinomioActual[1]
+          if (Math.abs(a) > 0.0001) {
+            const factor = `(${a}x ${b >= 0 ? '+' : ''} ${b})`
+            factores.push(factor)
+            explicacion.push(`El polinomio restante es de grado 1: ${factor}`)
+          }
+          break
+        }
+      }
+    }
+
+    // Si no encontramos factores, el polinomio es irreducible
+    if (factores.length === 0) {
+      return {
+        factores: [coeficientes.map((coef, i) => 
+          `${coef > 0 && i > 0 ? '+' : ''}${coef}${i < coeficientes.length - 1 ? 'x^' + (coeficientes.length - 1 - i) : ''}`
+        ).join('')],
+        explicacion: ["El polinomio es irreducible sobre los números enteros."]
+      }
+    }
+
+    return { factores, explicacion }
+  }
+
+  // Función para resolver ecuación cuadrática
   const resolverEcuacionCuadratica = (a: number, b: number, c: number): number[] => {
     if (Math.abs(a) < 1e-10) return []; // Evitar división por cero
     const discriminante = b * b - 4 * a * c;
@@ -126,8 +198,8 @@ export default function CalculadoraPage() {
       let encontrado = false
       
       for (const divisor of divisores) {
-        const resultado = evaluarRuffini(polinomioActual, divisor)
-        if (resultado.residuo === 0) {
+        const resultado = dividirRuffini(polinomioActual, divisor)
+        if (Math.abs(resultado.residuo) < 0.0001) { // Usamos una pequeña tolerancia
           polinomioActual = resultado.cociente
           divisoresEncontrados.push(divisor)
           const binomio = `(x ${divisor >= 0 ? '-' : '+'} ${Math.abs(divisor)})`
@@ -142,8 +214,8 @@ export default function CalculadoraPage() {
           // Resolver ecuación cuadrática restante
           const [a, b, c] = polinomioActual;
           const raices = resolverEcuacionCuadratica(a, b, c);
-          raices.forEach(raiz => {
-            if (!isNaN(raiz)) {
+          raices.forEach((raiz: number) => {
+            if (!isNaN(raiz) && Number.isInteger(raiz)) { // Solo consideramos raíces enteras
               divisoresEncontrados.push(raiz);
               const binomio = `(x ${raiz >= 0 ? '-' : '+'} ${Math.abs(raiz)})`;
               binomiosRepetidos.set(binomio, (binomiosRepetidos.get(binomio) || 0) + 1);
@@ -151,6 +223,15 @@ export default function CalculadoraPage() {
           });
         }
         break;
+      }
+    }
+
+    // Si quedó un polinomio de grado 1, lo agregamos como factor
+    if (polinomioActual.length === 2) {
+      const [a, b] = polinomioActual;
+      if (Math.abs(a) > 0.0001) {
+        const factor = `(${a}x ${b >= 0 ? '+' : ''} ${b})`;
+        factores.push(factor);
       }
     }
 
@@ -163,6 +244,7 @@ export default function CalculadoraPage() {
       factores: factoresConExponentes,
       ecuacionCuadratica: mostrarPolinomio(polinomioActual)
     })
+    setShowModal(true)
   }
 
   const mostrarPolinomio = (coefs: number[]) => {
@@ -198,137 +280,211 @@ export default function CalculadoraPage() {
     return polinomio.length > 0 ? polinomio : "0"
   }
 
+  const limpiarCampos = () => {
+    setCoeficientes(new Array(grado + 1).fill(0))
+    setResultados(null)
+    setError("")
+    setShowModal(false)
+  }
+
   return (
-    <div className="min-h-screen bg-[conic-gradient(at_top,_var(--tw-gradient-stops))] from-indigo-900 via-purple-900 to-slate-900 p-4">
+    <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900 via-purple-900 to-slate-900 p-4">
       <div className="container mx-auto max-w-4xl">
-        <div className="mb-8">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="mb-8"
+        >
           <Link href="/">
-            <Button variant="ghost" className="text-white hover:bg-white/20 backdrop-blur-sm">
+            <Button variant="ghost" className="text-white hover:bg-white/10 backdrop-blur-sm">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Volver al inicio
             </Button>
           </Link>
-        </div>
+        </motion.div>
 
-        <Card className="bg-white/10 backdrop-blur-md border-white/20">
-          <CardHeader>
-            <div className="flex items-center gap-4 mb-4">
-              <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl shadow-lg">
-                <Calculator className="h-8 w-8 text-white" />
-              </div>
-              <div>
-                <CardTitle className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
-                  Calculadora Ruffini
-                </CardTitle>
-                <CardDescription className="text-white/80 text-lg">
-                  Resuelve polinomios usando el método de Ruffini
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-8">
-            <div className="space-y-6">
-              <div className="flex items-center gap-4 bg-white/5 p-4 rounded-lg border border-white/10">
-                <Label htmlFor="grado" className="text-white text-lg">Grado del polinomio:</Label>
-                <Input
-                  id="grado"
-                  type="number"
-                  min="1"
-                  max="10"
-                  value={grado}
-                  onChange={(e) => {
-                    const nuevoGrado = Number.parseInt(e.target.value) || 1
-                    setGrado(Math.min(Math.max(nuevoGrado, 1), 10))
-                    setCoeficientes([])
-                    setResultados(null)
-                  }}
-                  className="max-w-[100px] bg-white/10 border-white/20 text-white focus:border-purple-500 focus:ring-purple-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white/5 p-6 rounded-lg border border-white/10 shadow-lg">
-                {generarInputsCoeficientes()}
-              </div>
-
-              <div className="flex gap-4 justify-end">
-                <Button
-                  onClick={() => {
-                    setCoeficientes([])
-                    setResultados(null)
-                    setError("")
-                  }}
-                  variant="outline"
-                  className="border-white/20 text-white hover:bg-white/10 backdrop-blur-sm"
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          <Card className="bg-white/10 backdrop-blur-md border-white/20 shadow-xl">
+            <CardHeader>
+              <div className="flex items-center gap-4 mb-4">
+                <motion.div 
+                  whileHover={{ scale: 1.1 }}
+                  className="p-3 bg-gradient-to-br from-blue-500/80 to-purple-500/80 rounded-xl shadow-lg"
                 >
-                  Nueva ecuación
-                </Button>
-                <Button
-                  onClick={calcularRuffini}
-                  className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-bold shadow-lg hover:shadow-xl transition-all duration-300"
-                >
-                  Calcular
-                </Button>
+                  <Calculator className="h-8 w-8 text-white" />
+                </motion.div>
+                <div>
+                  <CardTitle className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
+                    Calculadora Ruffini
+                  </CardTitle>
+                  <CardDescription className="text-white/80 text-lg">
+                    Resuelve polinomios usando el método de Ruffini
+                  </CardDescription>
+                </div>
               </div>
-            </div>
-
-            {error && (
-              <Alert variant="destructive" className="bg-red-500/20 border-red-500/50 text-white">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-
-            {resultados && (
-              <div className="space-y-6 bg-white/5 p-6 rounded-lg border border-white/10">
-                <h3 className="text-xl font-semibold text-white mb-4">Resultados:</h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <p className="text-white/80">Raíces encontradas:</p>
-                    <div className="bg-white/10 p-4 rounded-lg">
-                      {resultados.divisores.length > 0 ? (
-                        <ul className="list-disc list-inside space-y-1 text-white">
-                          {resultados.divisores.map((divisor, index) => (
-                            <li key={index}>x = {divisor}</li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="text-white/60">No se encontraron raíces reales</p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <p className="text-white/80">Factorización:</p>
-                    <div className="bg-white/10 p-4 rounded-lg">
-                      {resultados.factores.length > 0 ? (
-                        <div className="text-white font-mono">
-                          {coeficientes[0] !== 1 && coeficientes[0] !== -1 && (
-                            <span>{Math.abs(coeficientes[0])}</span>
-                          )}
-                          {coeficientes[0] === -1 && "-"}
-                          {resultados.factores.map((factor, index) => (
-                            <span key={index} dangerouslySetInnerHTML={{ __html: factor }} />
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-white/60">No se pudo factorizar completamente</p>
-                      )}
-                    </div>
-                  </div>
+            </CardHeader>
+            <CardContent className="space-y-8">
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.3 }}
+                className="space-y-6"
+              >
+                <div className="flex items-center gap-4 bg-white/5 p-4 rounded-lg border border-white/10 backdrop-blur-sm">
+                  <Label htmlFor="grado" className="text-white text-lg">Grado del polinomio:</Label>
+                  <Input
+                    id="grado"
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={grado}
+                    onChange={(e) => {
+                      const nuevoGrado = Number.parseInt(e.target.value) || 1
+                      setGrado(Math.min(Math.max(nuevoGrado, 1), 10))
+                      setCoeficientes([])
+                      setResultados(null)
+                    }}
+                    className="max-w-[100px] bg-white/10 border-white/20 text-white focus:border-purple-500 focus:ring-purple-500"
+                  />
                 </div>
 
-                {resultados.ecuacionCuadratica && resultados.ecuacionCuadratica !== "0" && (
-                  <div className="space-y-2">
-                    <p className="text-white/80">Polinomio restante:</p>
-                    <div className="bg-white/10 p-4 rounded-lg">
-                      <p className="text-white font-mono" dangerouslySetInnerHTML={{ __html: resultados.ecuacionCuadratica }} />
-                    </div>
-                  </div>
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.4 }}
+                  className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white/5 p-6 rounded-lg border border-white/10 backdrop-blur-sm shadow-lg"
+                >
+                  {generarInputsCoeficientes()}
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.5 }}
+                  className="flex justify-center gap-4"
+                >
+                  <Button
+                    onClick={calcularRuffini}
+                    className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white px-8 py-6 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+                  >
+                    Calcular
+                  </Button>
+                  <Button
+                    onClick={limpiarCampos}
+                    variant="outline"
+                    className="bg-white/10 hover:bg-white/20 text-white border-white/20 px-8 py-6 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+                  >
+                    Limpiar
+                  </Button>
+                </motion.div>
+
+                {error && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                  >
+                    <Alert variant="destructive" className="bg-red-500/10 border-red-500/20 text-red-200">
+                      <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                  </motion.div>
                 )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+
+                {resultados && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                    className="space-y-4 bg-white/5 p-6 rounded-lg border border-white/10 backdrop-blur-sm"
+                  >
+                    <div className="text-white/90">
+                      <h3 className="text-xl font-semibold mb-2">Resultados:</h3>
+                      <div className="space-y-2">
+                        <p>Divisores encontrados: {resultados.divisores.join(", ")}</p>
+                        <p>Factores: {resultados.factores.map((factor, index) => (
+                          <span key={index}>
+                            {index > 0 && " × "}
+                            {factor.includes("<sup>") ? (
+                              <span dangerouslySetInnerHTML={{ __html: factor }} />
+                            ) : (
+                              factor
+                            )}
+                          </span>
+                        ))}</p>
+                        <p>Ecuación cuadrática: <span dangerouslySetInnerHTML={{ __html: resultados.ecuacionCuadratica }} /></p>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </motion.div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <AnimatePresence>
+          {showModal && resultados && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className="bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900 via-purple-900 to-slate-900 rounded-2xl p-6 max-w-2xl w-full shadow-2xl border border-white/20"
+              >
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
+                    Resultados
+                  </h2>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowModal(false)}
+                    className="text-white hover:bg-white/10"
+                  >
+                    <X className="h-5 w-5" />
+                  </Button>
+                </div>
+                
+                <div className="space-y-4 text-white/90">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Divisores encontrados:</h3>
+                    <p>{resultados.divisores.join(", ")}</p>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Factores:</h3>
+                    <p>
+                      {resultados.factores.map((factor, index) => (
+                        <span key={index}>
+                          {index > 0 && " × "}
+                          {factor.includes("<sup>") ? (
+                            <span dangerouslySetInnerHTML={{ __html: factor }} />
+                          ) : (
+                            factor
+                          )}
+                        </span>
+                      ))}
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Ecuación cuadrática:</h3>
+                    <p dangerouslySetInnerHTML={{ __html: resultados.ecuacionCuadratica }} />
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   )
