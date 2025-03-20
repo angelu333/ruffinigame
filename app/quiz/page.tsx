@@ -164,12 +164,13 @@ export default function QuizPage() {
     const numPreguntas = dificultad === "facil" ? 5 : dificultad === "medio" ? 8 : 10
 
     for (let i = 0; i < numPreguntas; i++) {
-      const grado = dificultad === "facil" ? 2 : dificultad === "medio" ? 3 : 4
+      // Ajustar el grado según la dificultad
+      const grado = dificultad === "facil" ? 3 : dificultad === "medio" ? 4 : Math.floor(Math.random() * 3) + 5
       const coeficientes = generarCoeficientes(grado)
       const divisor = generarDivisor(dificultad)
       const resultado = evaluarRuffini(coeficientes, divisor)
       const opciones = generarOpciones(resultado, dificultad)
-      const respuestaCorrecta = String(opciones[Math.floor(Math.random() * opciones.length)])
+      const respuestaCorrecta = String(resultado)
 
       preguntas.push({
         polinomio: coeficientes,
@@ -525,7 +526,7 @@ export default function QuizPage() {
               <Progress value={(preguntaActual + 1) * (100 / preguntas.length)} className="h-2 bg-white/10" />
 
               <div className="space-y-4">
-                <p className="text-white/90 text-lg mb-2">Usando el método de Ruffini, ¿cuál es el residuo al dividir el siguiente polinomio entre (x - {preguntas[preguntaActual].divisor})?</p>
+                <p className="text-white/90 text-lg mb-2">Usando el método de Ruffini, ¿cuál es el residuo al dividir el siguiente polinomio entre (x {preguntas[preguntaActual].divisor >= 0 ? '-' : '+'} {Math.abs(preguntas[preguntaActual].divisor)})?</p>
                 <div className="text-2xl font-mono text-white">
                   <Polinomio terminos={preguntas[preguntaActual].polinomio} />
                 </div>

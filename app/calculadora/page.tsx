@@ -344,7 +344,7 @@ export default function CalculadoraPage() {
                     max="10"
                     value={grado}
                     onChange={(e) => {
-                      const nuevoGrado = Number.parseInt(e.target.value) || 1
+                      const nuevoGrado = e.target.value === "" ? 1 : Number.parseInt(e.target.value)
                       setGrado(Math.min(Math.max(nuevoGrado, 1), 10))
                       setCoeficientes([])
                       setResultados(null)
