@@ -116,7 +116,8 @@ export default function QuizPage() {
 
   // Función para generar coeficientes aleatorios
   const generarCoeficientes = (grado: number): number[] => {
-    const maxCoef = grado <= 2 ? 5 : grado <= 3 ? 8 : 10
+    // Reducir el rango de coeficientes según el grado para evitar residuos muy grandes
+    const maxCoef = grado <= 2 ? 3 : grado <= 3 ? 4 : grado <= 4 ? 5 : 3
     const coeficientes = Array.from(
       { length: grado + 1 },
       () => Math.floor(Math.random() * (maxCoef * 2 + 1)) - maxCoef
@@ -128,7 +129,7 @@ export default function QuizPage() {
 
   // Función para generar un divisor aleatorio
   const generarDivisor = (dificultad: "facil" | "medio" | "dificil"): number => {
-    const rango = dificultad === "facil" ? 3 : dificultad === "medio" ? 5 : 7
+    const rango = dificultad === "facil" ? 2 : dificultad === "medio" ? 3 : 4
     let divisor = 0
     while (divisor === 0) {
       divisor = Math.floor(Math.random() * (rango * 2 + 1)) - rango
@@ -143,7 +144,7 @@ export default function QuizPage() {
 
   // Función para generar opciones de respuesta
   const generarOpciones = (resultado: number, dificultad: string): string[] => {
-    const rango = dificultad === "facil" ? 2 : dificultad === "medio" ? 4 : 6
+    const rango = dificultad === "facil" ? 2 : dificultad === "medio" ? 3 : 4
     const opcionesBase = new Set([resultado])
     
     while (opcionesBase.size < 4) {
@@ -165,10 +166,19 @@ export default function QuizPage() {
 
     for (let i = 0; i < numPreguntas; i++) {
       // Ajustar el grado según la dificultad
-      const grado = dificultad === "facil" ? 3 : dificultad === "medio" ? 4 : Math.floor(Math.random() * 3) + 5
+      const grado = dificultad === "facil" ? 3 
+                  : dificultad === "medio" ? 4 
+                  : Math.random() < 0.5 ? 5 : 6 // Solo grados 5 y 6 para nivel difícil
       const coeficientes = generarCoeficientes(grado)
       const divisor = generarDivisor(dificultad)
       const resultado = evaluarRuffini(coeficientes, divisor)
+      
+      // Si el resultado es muy grande, regenerar los coeficientes
+      if (Math.abs(resultado) > 150) {
+        i--; // Repetir esta iteración
+        continue;
+      }
+      
       const opciones = generarOpciones(resultado, dificultad)
       const respuestaCorrecta = String(resultado)
 
