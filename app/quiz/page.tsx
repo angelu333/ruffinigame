@@ -117,6 +117,7 @@ export default function QuizPage() {
   // Función para generar coeficientes aleatorios
   const generarCoeficientes = (grado: number): number[] => {
     // Reducir el rango de coeficientes según el grado para evitar residuos muy grandes
+    // Ajustado para mantener residuos menores a 150
     const maxCoef = grado <= 2 ? 3 : grado <= 3 ? 4 : grado <= 4 ? 5 : 3
     const coeficientes = Array.from(
       { length: grado + 1 },
