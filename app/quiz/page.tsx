@@ -164,20 +164,47 @@ export default function QuizPage() {
   const generarPreguntas = (dificultad: "facil" | "medio" | "dificil"): Pregunta[] => {
     const preguntas: Pregunta[] = []
     const numPreguntas = dificultad === "facil" ? 5 : dificultad === "medio" ? 8 : 10
+    
+    // Determinar cuántas preguntas con residuo 0 queremos
+    const preguntasConResiduo0 = dificultad === "facil" ? 2 : dificultad === "medio" ? 3 : 4
 
     for (let i = 0; i < numPreguntas; i++) {
       // Ajustar el grado según la dificultad
       const grado = dificultad === "facil" ? 3 
                   : dificultad === "medio" ? 4 
                   : Math.random() < 0.5 ? 5 : 6 // Solo grados 5 y 6 para nivel difícil
-      const coeficientes = generarCoeficientes(grado)
-      const divisor = generarDivisor(dificultad)
-      const resultado = evaluarRuffini(coeficientes, divisor)
       
-      // Si el resultado es muy grande, regenerar los coeficientes
-      if (Math.abs(resultado) > 150) {
-        i--; // Repetir esta iteración
-        continue;
+      let coeficientes: number[]
+      let divisor: number
+      let resultado: number
+
+      // Decidir si esta pregunta tendrá residuo 0
+      const debeSerResiduo0 = i < preguntasConResiduo0
+
+      if (debeSerResiduo0) {
+        // Generar un polinomio que sea divisible por el divisor
+        divisor = generarDivisor(dificultad)
+        const coeficientesCociente = generarCoeficientes(grado - 1) // Un grado menos para el cociente
+        
+        // Multiplicar por (x - divisor) para garantizar residuo 0
+        coeficientes = [coeficientesCociente[0]]
+        for (let j = 0; j < coeficientesCociente.length - 1; j++) {
+          coeficientes.push(coeficientesCociente[j + 1] - divisor * coeficientes[j])
+        }
+        coeficientes.push(-divisor * coeficientes[coeficientes.length - 1])
+        
+        resultado = 0
+      } else {
+        // Generar un polinomio normal (probablemente con residuo no cero)
+        coeficientes = generarCoeficientes(grado)
+        divisor = generarDivisor(dificultad)
+        resultado = evaluarRuffini(coeficientes, divisor)
+        
+        // Si el resultado es muy grande, regenerar los coeficientes
+        if (Math.abs(resultado) > 150) {
+          i--
+          continue
+        }
       }
       
       const opciones = generarOpciones(resultado, dificultad)
@@ -191,7 +218,8 @@ export default function QuizPage() {
       })
     }
 
-    return preguntas
+    // Mezclar el orden de las preguntas
+    return preguntas.sort(() => Math.random() - 0.5)
   }
 
   useEffect(() => {
