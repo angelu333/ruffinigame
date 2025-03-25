@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { motion, AnimatePresence } from "framer-motion"
 import confetti from 'canvas-confetti'
+import { useSound } from 'use-sound'
 
 // Tipos para nuestro quiz
 type Dificultad = "facil" | "medio" | "dificil"
@@ -24,6 +25,7 @@ interface Pregunta {
   divisor: number
   opciones: string[]
   respuestaCorrecta: string
+  opcionesOcultas?: boolean[]
 }
 
 // Componente para renderizar un término del polinomio con exponentes como superíndices
@@ -102,6 +104,32 @@ export default function QuizPage() {
     duration: number;
   }>>([]);
   const [feedbackEmoji, setFeedbackEmoji] = useState<string>("")
+  const [powerUpDisponible, setPowerUpDisponible] = useState(true);
+  const [musicaActiva, setMusicaActiva] = useState(false);
+  const [racha, setRacha] = useState(0)
+
+  // Efectos de sonido
+  const [playAcierto] = useSound('/sounds/success.mp3', { 
+    volume: 0.5,
+    soundEnabled: true // Habilitar sonido
+  });
+  const [playError] = useSound('/sounds/error.mp3', { 
+    volume: 0.5,
+    soundEnabled: true // Habilitar sonido
+  });
+  const [playMusic, { stop: stopMusic }] = useSound('/sounds/background-music.mp3', {
+    volume: 0.2,
+    loop: true,
+    soundEnabled: true // Habilitar sonido
+  });
+
+  // Efecto para la música de fondo
+  useEffect(() => {
+    if (musicaActiva && iniciado) {
+      playMusic();
+    }
+    return () => stopMusic();
+  }, [musicaActiva, iniciado]);
 
   useEffect(() => {
     setParticles(
@@ -248,43 +276,105 @@ export default function QuizPage() {
     setIniciado(true);
   };
 
+  const usar5050 = () => {
+    if (!powerUpDisponible || respuestaEnviada) return;
+    
+    const preguntaActualObj = preguntas[preguntaActual];
+    const opcionesOcultas = new Array(preguntaActualObj.opciones.length).fill(false);
+    
+    // Encontrar índices de opciones incorrectas
+    const indicesIncorrectos = preguntaActualObj.opciones
+      .map((opcion: string, index: number) => opcion !== preguntaActualObj.respuestaCorrecta ? index : -1)
+      .filter((index: number) => index !== -1);
+    
+    // Seleccionar aleatoriamente dos opciones incorrectas para ocultar
+    const indicesAOcultar = indicesIncorrectos
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 2);
+    
+    // Marcar las opciones seleccionadas como ocultas
+    indicesAOcultar.forEach((index: number) => {
+      opcionesOcultas[index] = true;
+    });
+    
+    // Actualizar el estado de las preguntas
+    setPreguntas(prev => [
+      ...prev.slice(0, preguntaActual),
+      { ...prev[preguntaActual], opcionesOcultas },
+      ...prev.slice(preguntaActual + 1)
+    ]);
+    
+    setPowerUpDisponible(false);
+  };
+
   const verificarRespuesta = (respuesta: string) => {
-    if (respuestaEnviada) return; // Evitar cambios después de enviar la respuesta
+    if (respuestaEnviada) return;
     
     setRespuestaSeleccionada(respuesta);
     setRespuestaEnviada(true);
     setMostrarFeedback(true);
     
-    if (respuesta === preguntas[preguntaActual].respuestaCorrecta) {
-      setPuntuacion(prev => prev + 1);
-      // Efecto de confeti
+    const esCorrecta = respuesta === preguntas[preguntaActual].respuestaCorrecta;
+    
+    if (esCorrecta) {
+      playAcierto();
+      
+      // Efectos visuales mejorados para aciertos
+      const rachaActual = racha + 1;
+      const rachaMultiplier = Math.min(rachaActual, 5);
+      
+      // Confeti central
       confetti({
-        particleCount: 100,
+        particleCount: 100 * rachaMultiplier,
         spread: 70,
         origin: { y: 0.6 }
       });
-      setFeedbackEmoji('✅');
+      
+      // Confeti lateral para rachas altas
+      if (rachaActual >= 2) {
+        setTimeout(() => {
+          confetti({
+            particleCount: 50,
+            spread: 90,
+            origin: { x: 0.1, y: 0.5 },
+            colors: ['#FFD700', '#FFA500']
+          });
+          confetti({
+            particleCount: 50,
+            spread: 90,
+            origin: { x: 0.9, y: 0.5 },
+            colors: ['#FFD700', '#FFA500']
+          });
+        }, 200);
+      }
+      
+      setFeedbackEmoji('✨');
+      setPuntuacion(prev => prev + 1);
+      setRacha(prev => prev + 1);
     } else {
-      // Efecto de emojis tristes y quitar una vida
+      playError();
       const emojis = ['😢', '😭', '😔', '😞', '😫'];
       const emoji = emojis[Math.floor(Math.random() * emojis.length)];
       setFeedbackEmoji(emoji);
+      setRacha(0);
+      
+      // Efecto de shake para respuestas incorrectas
+      const element = document.querySelector('.quiz-container');
+      element?.classList.add('shake');
+      setTimeout(() => element?.classList.remove('shake'), 500);
+      
       setVidas(prev => {
         const nuevasVidas = prev - 1;
-        // Si se quedan sin vidas, terminar el juego después de un breve retraso
         if (nuevasVidas <= 0) {
-        setTimeout(() => {
-            setJuegoTerminado(true);
-          }, 1500);
+          setTimeout(() => setJuegoTerminado(true), 1500);
         }
         return nuevasVidas;
       });
     }
 
-    // Ocultar feedback después de 5 segundos
     setTimeout(() => {
       setMostrarFeedback(false);
-    }, 5000);
+    }, 2000);
   };
 
   const siguientePregunta = () => {
@@ -525,25 +615,47 @@ export default function QuizPage() {
   if (iniciado && preguntas.length > 0 && !juegoTerminado) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-slate-900 flex flex-col items-center justify-center p-4">
-        <div className="w-full max-w-4xl">
+        <style jsx global>{`
+          @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            75% { transform: translateX(8px); }
+          }
+          .shake {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+          }
+        `}</style>
+        <div className="w-full max-w-4xl quiz-container">
           <div className="flex justify-between items-center mb-8">
-          <Link href="/">
-              <Button variant="ghost" className="text-white hover:bg-white/20 backdrop-blur-sm">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Volver al inicio
-            </Button>
-          </Link>
+            <Link href="/">
+              <Button variant="ghost" className="text-white hover:bg-white/10">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Volver al inicio
+              </Button>
+            </Link>
             <h1 className="text-xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 flex items-center">
               <GameController className="mr-2 h-6 w-6 md:h-8 md:w-8" />
               Quiz de Ruffini
             </h1>
-            <div className="flex items-center">
-              {Array.from({ length: vidas }).map((_, i) => (
-                <Heart key={i} className="h-6 w-6 text-red-500 fill-red-500" />
-              ))}
-              {Array.from({ length: 3 - vidas }).map((_, i) => (
-                <Heart key={i + vidas} className="h-6 w-6 text-red-500/30" />
-              ))}
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                className="text-white hover:bg-white/10"
+                onClick={() => setMusicaActiva(!musicaActiva)}
+              >
+                {musicaActiva ? '🔊' : '🔈'}
+              </Button>
+              {powerUpDisponible && (
+                <Button
+                  variant="ghost"
+                  className="text-white hover:bg-white/10 flex items-center gap-2"
+                  onClick={usar5050}
+                  disabled={respuestaEnviada}
+                >
+                  <span>50:50</span>
+                  <span className="text-xs">⚡</span>
+                </Button>
+              )}
             </div>
           </div>
 
@@ -577,43 +689,53 @@ export default function QuizPage() {
                 onValueChange={respuestaEnviada ? undefined : verificarRespuesta}
                 className="space-y-3"
               >
-                {preguntas[preguntaActual].opciones.map((opcion, index) => (
-                  <div
-                    key={index}
-                    className={`flex items-center space-x-2 rounded-lg border p-4 transition-all duration-300 ${
-                      respuestaEnviada
-                        ? opcion === preguntas[preguntaActual].respuestaCorrecta
-                          ? 'border-green-500 bg-green-500/20'
-                          : respuestaSeleccionada === opcion
-                          ? 'border-red-500 bg-red-500/20'
-                          : 'border-white/20 opacity-60'
-                        : 'border-white/20 hover:border-white/40 cursor-pointer'
-                    }`}
-                  >
-                    <RadioGroupItem value={opcion} id={`opcion-${index}`} disabled={respuestaEnviada} />
-                    <Label htmlFor={`opcion-${index}`} className="flex-1 cursor-pointer">
-                      {opcion}
-                    </Label>
-                    {respuestaEnviada && opcion === preguntas[preguntaActual].respuestaCorrecta && (
-                      <motion.span 
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        className="text-green-500"
-                      >
-                        ✓
-                      </motion.span>
-                    )}
-                    {respuestaEnviada && respuestaSeleccionada === opcion && opcion !== preguntas[preguntaActual].respuestaCorrecta && (
-                      <motion.span 
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        className="text-red-500"
-                      >
-                        ✗
-                      </motion.span>
-                    )}
-                  </div>
-                ))}
+                {preguntas[preguntaActual].opciones.map((opcion, index) => {
+                  // Si la opción está oculta por el power-up 50:50, no la renderizamos
+                  if (preguntas[preguntaActual].opcionesOcultas?.[index]) {
+                    return null;
+                  }
+                  
+                  return (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: index * 0.1 }}
+                      className={`flex items-center space-x-2 rounded-lg border p-4 transition-all duration-300 ${
+                        respuestaEnviada
+                          ? opcion === preguntas[preguntaActual].respuestaCorrecta
+                            ? 'border-green-500 bg-green-500/20'
+                            : respuestaSeleccionada === opcion
+                            ? 'border-red-500 bg-red-500/20'
+                            : 'border-white/20 opacity-60'
+                          : 'border-white/20 hover:border-white/40 cursor-pointer'
+                      }`}
+                    >
+                      <RadioGroupItem value={opcion} id={`opcion-${index}`} disabled={respuestaEnviada} />
+                      <Label htmlFor={`opcion-${index}`} className="flex-1 cursor-pointer">
+                        {opcion}
+                      </Label>
+                      {respuestaEnviada && opcion === preguntas[preguntaActual].respuestaCorrecta && (
+                        <motion.span 
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          className="text-green-500"
+                        >
+                          ✓
+                        </motion.span>
+                      )}
+                      {respuestaEnviada && respuestaSeleccionada === opcion && opcion !== preguntas[preguntaActual].respuestaCorrecta && (
+                        <motion.span 
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          className="text-red-500"
+                        >
+                          ✗
+                        </motion.span>
+                      )}
+                    </motion.div>
+                  );
+                })}
               </RadioGroup>
             </CardContent>
             <CardFooter>
