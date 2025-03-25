@@ -273,7 +273,7 @@ export default function QuizPage() {
         const nuevasVidas = prev - 1;
         // Si se quedan sin vidas, terminar el juego después de un breve retraso
         if (nuevasVidas <= 0) {
-          setTimeout(() => {
+        setTimeout(() => {
             setJuegoTerminado(true);
           }, 1500);
         }
@@ -314,7 +314,7 @@ export default function QuizPage() {
   // Renderizar pantalla de inicio
   if (!iniciado) {
     return (
-      <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900 via-purple-900 to-slate-900 flex flex-col items-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-slate-900 flex flex-col items-center p-4">
         <div className="w-full max-w-4xl relative">
           {/* Fondo animado con partículas matemáticas */}
           <div className="absolute inset-0 opacity-5 pointer-events-none flex items-center justify-center text-white text-9xl select-none">
@@ -364,7 +364,7 @@ export default function QuizPage() {
           >
             <Card className="bg-white/10 backdrop-blur-md border-white/20 shadow-xl">
               <CardHeader>
-                <CardTitle className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
+                <CardTitle className="text-2xl font-bold text-white">
                   Selecciona la dificultad
                 </CardTitle>
                 <CardDescription className="text-white/80">
@@ -403,29 +403,8 @@ export default function QuizPage() {
   // Renderizar pantalla de juego
   if (iniciado && preguntas.length === 0) {
     return (
-      <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900 via-purple-900 to-slate-900 flex flex-col items-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-slate-900 flex flex-col items-center p-4">
         <div className="w-full max-w-4xl relative">
-          <div className="absolute inset-0 opacity-5 pointer-events-none flex items-center justify-center text-white text-9xl select-none">
-            {particles.map((particle, i) => (
-              <motion.div
-                key={i}
-                className="absolute text-white text-2xl"
-                initial={{ x: particle.x, y: particle.y }}
-                animate={{
-                  x: [`${Math.random() * 100}%`, `${Math.random() * 100}%`],
-                  y: [`${Math.random() * 100}%`, `${Math.random() * 100}%`],
-                }}
-                transition={{
-                  duration: particle.duration,
-                  repeat: Infinity,
-                  ease: "linear"
-                }}
-              >
-                {particle.symbol}
-              </motion.div>
-            ))}
-          </div>
-
           <Card className="bg-white/10 backdrop-blur-md border-white/20 shadow-xl">
             <CardHeader>
               <CardTitle className="text-2xl text-white">Cargando...</CardTitle>
@@ -442,11 +421,11 @@ export default function QuizPage() {
   // Renderizar pantalla de fin de juego
   if (juegoTerminado) {
     return (
-      <div className="min-h-screen bg-[conic-gradient(at_top,_var(--tw-gradient-stops))] from-indigo-900 via-purple-900 to-slate-900 flex flex-col items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-slate-900 flex flex-col items-center justify-center p-4">
         <div className="w-full max-w-4xl">
           <div className="flex justify-between items-center mb-8">
             <Link href="/">
-              <Button variant="ghost" className="text-white hover:bg-white/20 backdrop-blur-sm">
+              <Button variant="ghost" className="text-white hover:bg-white/10 backdrop-blur-sm">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Volver al inicio
               </Button>
@@ -531,7 +510,7 @@ export default function QuizPage() {
   // Mostrar feedback en el centro
   const feedbackElement = mostrarFeedback && (
     <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
-      <motion.div 
+        <motion.div 
         initial={{ scale: 0.5, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.5, opacity: 0 }}
@@ -545,15 +524,15 @@ export default function QuizPage() {
   // Renderizar pantalla de juego activo
   if (iniciado && preguntas.length > 0 && !juegoTerminado) {
     return (
-      <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw_gradient-stops))] from-blue-900 via-purple-900 to-slate-900 flex flex-col items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-slate-900 flex flex-col items-center justify-center p-4">
         <div className="w-full max-w-4xl">
           <div className="flex justify-between items-center mb-8">
-            <Link href="/">
+          <Link href="/">
               <Button variant="ghost" className="text-white hover:bg-white/20 backdrop-blur-sm">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Volver al inicio
-              </Button>
-            </Link>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Volver al inicio
+            </Button>
+          </Link>
             <h1 className="text-xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 flex items-center">
               <GameController className="mr-2 h-6 w-6 md:h-8 md:w-8" />
               Quiz de Ruffini
@@ -593,7 +572,7 @@ export default function QuizPage() {
                 </div>
               </div>
 
-              <RadioGroup 
+              <RadioGroup
                 value={respuestaSeleccionada || ""} 
                 onValueChange={respuestaEnviada ? undefined : verificarRespuesta}
                 className="space-y-3"
@@ -638,15 +617,15 @@ export default function QuizPage() {
               </RadioGroup>
             </CardContent>
             <CardFooter>
-              <Button 
-                onClick={siguientePregunta} 
-                disabled={!respuestaEnviada} 
+                <Button
+                  onClick={siguientePregunta}
+                  disabled={!respuestaEnviada}
                 className={`w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 font-medium ${
                   !respuestaEnviada ? 'opacity-50' : ''
                 }`}
               >
                 Siguiente Pregunta
-              </Button>
+                </Button>
             </CardFooter>
           </Card>
         </div>
@@ -658,7 +637,7 @@ export default function QuizPage() {
 
   // Si llegamos aquí, devolvemos la pantalla de carga por defecto
   return (
-    <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900 via-purple-900 to-slate-900 flex flex-col items-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-slate-900 flex flex-col items-center p-4">
       <div className="w-full max-w-4xl relative">
         <Card className="bg-white/10 backdrop-blur-md border-white/20 shadow-xl">
           <CardHeader>
