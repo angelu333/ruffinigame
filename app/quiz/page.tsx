@@ -242,33 +242,39 @@ export default function QuizPage() {
   const verificarRespuesta = (respuesta: string) => {
     if (respuestaEnviada) return; // Evitar cambios después de enviar la respuesta
     
-    setRespuestaSeleccionada(respuesta)
-    setRespuestaEnviada(true)
-    setMostrarFeedback(true)
+    setRespuestaSeleccionada(respuesta);
+    setRespuestaEnviada(true);
+    setMostrarFeedback(true);
     
     if (respuesta === preguntas[preguntaActual].respuestaCorrecta) {
-      setPuntuacion(prev => prev + 1)
+      setPuntuacion(prev => prev + 1);
       // Efecto de confeti
       confetti({
         particleCount: 100,
         spread: 70,
         origin: { y: 0.6 }
-      })
+      });
+      setFeedbackEmoji('✅');
     } else {
       // Efecto de emojis tristes y quitar una vida
-      const emojis = ['😢', '😭', '😔', '😞', '😫']
-      const emoji = emojis[Math.floor(Math.random() * emojis.length)]
-      setFeedbackEmoji(emoji)
-      setVidas(prev => prev - 1)
+      const emojis = ['😢', '😭', '😔', '😞', '😫'];
+      const emoji = emojis[Math.floor(Math.random() * emojis.length)];
+      setFeedbackEmoji(emoji);
+      setVidas(prev => prev - 1);
       
       // Si se quedan sin vidas, terminar el juego
       if (vidas <= 1) {
         setTimeout(() => {
-          setJuegoTerminado(true)
-        }, 1500)
+          setJuegoTerminado(true);
+        }, 1500);
       }
     }
-  }
+
+    // Ocultar feedback después de 5 segundos
+    setTimeout(() => {
+      setMostrarFeedback(false);
+    }, 5000);
+  };
 
   const siguientePregunta = () => {
     if (!respuestaEnviada) return; // No permitir avanzar sin responder
@@ -514,6 +520,15 @@ export default function QuizPage() {
   // Renderizar pregunta actual
   const preguntaActualObj = preguntas[preguntaActual]
 
+  // Mostrar feedback en el centro
+  {mostrarFeedback && (
+    <div className="fixed inset-0 flex items-center justify-center z-50">
+      <div className="bg-black/70 text-white p-4 rounded-lg">
+        <span className="text-4xl">{feedbackEmoji}</span>
+      </div>
+    </div>
+  )}
+
   return (
     <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900 via-purple-900 to-slate-900 flex flex-col items-center p-4">
       <div className="w-full max-w-4xl relative">
@@ -601,27 +616,6 @@ export default function QuizPage() {
                   </div>
                 ))}
               </RadioGroup>
-
-              <AnimatePresence>
-                {mostrarFeedback && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.8 }}
-                    className="text-center"
-                  >
-                    {respuestaSeleccionada === preguntas[preguntaActual].respuestaCorrecta ? (
-                      <div className="text-green-400 text-2xl font-bold">
-                        ¡Correcto! 🎉
-                      </div>
-                    ) : (
-                      <div className="text-red-400 text-2xl font-bold">
-                        Incorrecto {feedbackEmoji}
-                      </div>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
 
               <div className="flex justify-center">
                 <Button

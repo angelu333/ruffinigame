@@ -407,28 +407,6 @@ export default function CalculadoraPage() {
                     </Alert>
                   </motion.div>
                 )}
-
-                {resultados && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                    className="space-y-4 bg-white/5 p-6 rounded-lg border border-white/10 backdrop-blur-sm"
-                  >
-                    <div className="text-white/90">
-                      <h3 className="text-xl font-semibold mb-2">Resultados:</h3>
-                      <div className="space-y-2">
-                        <p>Divisores encontrados: {resultados.divisores.join(", ")}</p>
-                        <p>Factores: {resultados.factores.map((factor, index) => (
-                          <span key={index}>
-                            {index > 0 && " × "}
-                            <span dangerouslySetInnerHTML={{ __html: factor }} />
-                          </span>
-                        ))}</p>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
               </motion.div>
             </CardContent>
           </Card>
