@@ -26,7 +26,6 @@ type Pregunta = {
   opciones: string[]
   respuestaCorrecta: string
   opcionesOcultas?: boolean[]
-  pregunta?: string
 }
 
 // Componente para renderizar un término del polinomio con exponentes como superíndices
@@ -190,17 +189,17 @@ export default function QuizPage() {
       .map(String)
   }
 
-  const generarPregunta = (polinomio: number[], divisor: number): string => {
+  const generarPregunta = (polinomio: number[], divisor: number): JSX.Element => {
     return (
       <div className="space-y-2">
-        <p>Calcula el residuo de la división:</p>
-        <div className="flex items-center flex-wrap gap-2 text-xl md:text-2xl font-medium">
+        <p className="text-lg text-white">Calcula el residuo de la división:</p>
+        <div className="flex items-center flex-wrap gap-2 text-xl md:text-2xl font-medium text-white">
           <Polinomio terminos={polinomio} />
           <span className="mx-2">÷</span>
           <span>(x - {divisor})</span>
         </div>
       </div>
-    ).toString();
+    );
   };
 
   // Generar preguntas según la dificultad
@@ -262,10 +261,7 @@ export default function QuizPage() {
     }
 
     // Mezclar el orden de las preguntas
-    return preguntas.sort(() => Math.random() - 0.5).map(p => ({
-      ...p,
-      pregunta: generarPregunta(p.polinomio, p.divisor)
-    }));
+    return preguntas.sort(() => Math.random() - 0.5);
   }
 
   useEffect(() => {
@@ -719,7 +715,7 @@ export default function QuizPage() {
               
               <CardContent className="space-y-4">
                 <div className="text-lg text-white mb-4">
-                  {preguntas[preguntaActual].pregunta}
+                  {generarPregunta(preguntas[preguntaActual].polinomio, preguntas[preguntaActual].divisor)}
                 </div>
                 
                 <div className="grid gap-3">
