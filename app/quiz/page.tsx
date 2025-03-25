@@ -224,24 +224,28 @@ export default function QuizPage() {
 
   useEffect(() => {
     if (iniciado) {
-      setPreguntas(generarPreguntas(dificultad))
-      setPreguntaActual(0)
-      setRespuestaSeleccionada(null)
-      setRespuestaEnviada(false)
-      setMostrarFeedback(false)
+      const nuevasPreguntas = generarPreguntas(dificultad);
+      setPreguntas(nuevasPreguntas);
+      setPreguntaActual(0);
+      setRespuestaSeleccionada(null);
+      setRespuestaEnviada(false);
+      setMostrarFeedback(false);
     }
-  }, [iniciado, dificultad])
+  }, [iniciado, dificultad]);
 
   const iniciarJuego = () => {
-    setIniciado(true);
     setVidas(3);
     setPuntuacion(0);
     setJuegoTerminado(false);
-    setPreguntas(generarPreguntas(dificultad));
+    // Primero generamos las preguntas
+    const nuevasPreguntas = generarPreguntas(dificultad);
+    setPreguntas(nuevasPreguntas);
     setPreguntaActual(0);
     setRespuestaSeleccionada(null);
     setRespuestaEnviada(false);
     setMostrarFeedback(false);
+    // Después marcamos como iniciado
+    setIniciado(true);
   };
 
   const verificarRespuesta = (respuesta: string) => {
@@ -265,14 +269,16 @@ export default function QuizPage() {
       const emojis = ['😢', '😭', '😔', '😞', '😫'];
       const emoji = emojis[Math.floor(Math.random() * emojis.length)];
       setFeedbackEmoji(emoji);
-      setVidas(prev => prev - 1);
-      
-      // Si se quedan sin vidas, terminar el juego
-      if (vidas <= 1) {
-        setTimeout(() => {
-          setJuegoTerminado(true);
-        }, 1500);
-      }
+      setVidas(prev => {
+        const nuevasVidas = prev - 1;
+        // Si se quedan sin vidas, terminar el juego después de un breve retraso
+        if (nuevasVidas <= 0) {
+          setTimeout(() => {
+            setJuegoTerminado(true);
+          }, 1500);
+        }
+        return nuevasVidas;
+      });
     }
 
     // Ocultar feedback después de 5 segundos
@@ -395,7 +401,7 @@ export default function QuizPage() {
   }
 
   // Renderizar pantalla de juego
-  if (preguntas.length === 0) {
+  if (iniciado && preguntas.length === 0) {
     return (
       <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900 via-purple-900 to-slate-900 flex flex-col items-center p-4">
         <div className="w-full max-w-4xl relative">
@@ -494,7 +500,7 @@ export default function QuizPage() {
                   <div className="bg-white/5 p-4 rounded-lg text-center">
                     <p className="text-sm text-white/60">Precisión</p>
                     <p className="text-2xl font-bold">
-                      {Math.round((puntuacion / ((preguntaActual + 1) * (dificultad === "facil" ? 10 : dificultad === "medio" ? 20 : 30))) * 100)}%
+                      {Math.round((puntuacion / (preguntaActual + 1)) * 100)}%
                     </p>
                   </div>
                 </div>
@@ -523,98 +529,147 @@ export default function QuizPage() {
   }
 
   // Mostrar feedback en el centro
-  {mostrarFeedback && (
-    <div className="fixed inset-0 flex items-center justify-center z-50">
-      <div className="bg-black/70 text-white p-4 rounded-lg">
-        <span className="text-4xl">{feedbackEmoji}</span>
-      </div>
+  const feedbackElement = mostrarFeedback && (
+    <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
+      <motion.div 
+        initial={{ scale: 0.5, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.5, opacity: 0 }}
+        className="bg-black/70 text-white p-6 rounded-full"
+      >
+        <span className="text-6xl">{feedbackEmoji}</span>
+      </motion.div>
     </div>
-  )}
+  );
 
-  return (
-    <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900 via-purple-900 to-slate-900 flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-4xl">
-        <div className="flex justify-between items-center mb-8">
-          <Link href="/">
-            <Button variant="ghost" className="text-white hover:bg-white/20 backdrop-blur-sm">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Volver al inicio
-            </Button>
-          </Link>
-          <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-400 flex items-center">
-            <Trophy className="mr-3 h-8 w-8 text-yellow-400" />
-            Resultados
-          </h1>
-          <div className="w-[100px]"></div>
-        </div>
-
-        <Card className="bg-white/10 backdrop-blur-md border-white/20 text-white">
-          <CardHeader>
-            <CardTitle className="text-center text-3xl">
-              {vidas > 0 ? "¡Felicitaciones!" : "¡Buen intento!"}
-            </CardTitle>
-            <CardDescription className="text-white/80 text-center text-lg">
-              {vidas > 0
-                ? "Has demostrado tu dominio del método de Ruffini"
-                : "La práctica lleva a la perfección. ¡Inténtalo de nuevo!"}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-8">
-            <div className="flex flex-col items-center justify-center py-8">
-              <div className="relative">
-                <Trophy className="h-32 w-32 text-yellow-400 animate-pulse" />
-                <div className="absolute -top-4 -right-4 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full p-3">
-                  <span className="text-xl font-bold">{puntuacion}</span>
-                </div>
-              </div>
-              <p className="text-white/80 mt-4 text-lg">
-                Nivel: {dificultad === "facil" ? "Fácil" : dificultad === "medio" ? "Medio" : "Experto"}
-              </p>
-              <div className="flex items-center mt-4 space-x-2">
-                {Array.from({ length: vidas }).map((_, i) => (
-                  <Heart key={i} className="h-8 w-8 text-red-500 fill-red-500 animate-bounce" style={{ animationDelay: `${i * 200}ms` }} />
-                ))}
-                {Array.from({ length: 3 - vidas }).map((_, i) => (
-                  <Heart key={i + vidas} className="h-8 w-8 text-red-500/30" />
-                ))}
-              </div>
-            </div>
-
-            <div className="bg-white/10 p-6 rounded-lg space-y-3">
-              <h3 className="font-semibold text-xl mb-4">Estadísticas Finales</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-white/5 p-4 rounded-lg text-center">
-                  <p className="text-sm text-white/60">Preguntas Completadas</p>
-                  <p className="text-2xl font-bold">{preguntaActual + 1}/{preguntas.length}</p>
-                </div>
-                <div className="bg-white/5 p-4 rounded-lg text-center">
-                  <p className="text-sm text-white/60">Precisión</p>
-                  <p className="text-2xl font-bold">
-                    {Math.round((puntuacion / ((preguntaActual + 1) * (dificultad === "facil" ? 10 : dificultad === "medio" ? 20 : 30))) * 100)}%
-                  </p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-          <CardFooter className="flex flex-col sm:flex-row gap-4">
-            <Button 
-              onClick={reiniciarJuego} 
-              className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-lg font-bold"
-            >
-              Intentar de Nuevo
-            </Button>
-            <Link href="/" className="w-full">
-              <Button 
-                variant="outline" 
-                className="w-full border-white/30 hover:bg-white/20 text-white text-lg font-bold"
-              >
-                Volver al Inicio
+  // Renderizar pantalla de juego activo
+  if (iniciado && preguntas.length > 0 && !juegoTerminado) {
+    return (
+      <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw_gradient-stops))] from-blue-900 via-purple-900 to-slate-900 flex flex-col items-center justify-center p-4">
+        <div className="w-full max-w-4xl">
+          <div className="flex justify-between items-center mb-8">
+            <Link href="/">
+              <Button variant="ghost" className="text-white hover:bg-white/20 backdrop-blur-sm">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Volver al inicio
               </Button>
             </Link>
-          </CardFooter>
+            <h1 className="text-xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 flex items-center">
+              <GameController className="mr-2 h-6 w-6 md:h-8 md:w-8" />
+              Quiz de Ruffini
+            </h1>
+            <div className="flex items-center">
+              {Array.from({ length: vidas }).map((_, i) => (
+                <Heart key={i} className="h-6 w-6 text-red-500 fill-red-500" />
+              ))}
+              {Array.from({ length: 3 - vidas }).map((_, i) => (
+                <Heart key={i + vidas} className="h-6 w-6 text-red-500/30" />
+              ))}
+            </div>
+          </div>
+
+          <Card className="bg-white/10 backdrop-blur-md border-white/20 text-white mb-4">
+            <CardHeader className="pb-3">
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle>Pregunta {preguntaActual + 1} de {preguntas.length}</CardTitle>
+                  <CardDescription className="text-white/70">
+                    Nivel: {dificultad === "facil" ? "Fácil" : dificultad === "medio" ? "Medio" : "Difícil"}
+                  </CardDescription>
+                </div>
+                <div className="bg-white/10 rounded-full px-3 py-1">
+                  <span className="text-sm font-medium">Puntos: {puntuacion}</span>
+                </div>
+              </div>
+              <Progress value={(preguntaActual / preguntas.length) * 100} className="mt-2 bg-white/20" />
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="bg-white/5 p-4 rounded-lg">
+                <p className="text-lg font-medium mb-4">Calcula el residuo de la división:</p>
+                <div className="flex items-center flex-wrap gap-2 text-xl md:text-2xl font-medium mb-4">
+                  <Polinomio terminos={preguntas[preguntaActual].polinomio} />
+                  <span className="mx-2">÷</span>
+                  <span>(x - {preguntas[preguntaActual].divisor})</span>
+                </div>
+              </div>
+
+              <RadioGroup 
+                value={respuestaSeleccionada || ""} 
+                onValueChange={respuestaEnviada ? undefined : verificarRespuesta}
+                className="space-y-3"
+              >
+                {preguntas[preguntaActual].opciones.map((opcion, index) => (
+                  <div
+                    key={index}
+                    className={`flex items-center space-x-2 rounded-lg border p-4 transition-all duration-300 ${
+                      respuestaEnviada
+                        ? opcion === preguntas[preguntaActual].respuestaCorrecta
+                          ? 'border-green-500 bg-green-500/20'
+                          : respuestaSeleccionada === opcion
+                          ? 'border-red-500 bg-red-500/20'
+                          : 'border-white/20 opacity-60'
+                        : 'border-white/20 hover:border-white/40 cursor-pointer'
+                    }`}
+                  >
+                    <RadioGroupItem value={opcion} id={`opcion-${index}`} disabled={respuestaEnviada} />
+                    <Label htmlFor={`opcion-${index}`} className="flex-1 cursor-pointer">
+                      {opcion}
+                    </Label>
+                    {respuestaEnviada && opcion === preguntas[preguntaActual].respuestaCorrecta && (
+                      <motion.span 
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="text-green-500"
+                      >
+                        ✓
+                      </motion.span>
+                    )}
+                    {respuestaEnviada && respuestaSeleccionada === opcion && opcion !== preguntas[preguntaActual].respuestaCorrecta && (
+                      <motion.span 
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="text-red-500"
+                      >
+                        ✗
+                      </motion.span>
+                    )}
+                  </div>
+                ))}
+              </RadioGroup>
+            </CardContent>
+            <CardFooter>
+              <Button 
+                onClick={siguientePregunta} 
+                disabled={!respuestaEnviada} 
+                className={`w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 font-medium ${
+                  !respuestaEnviada ? 'opacity-50' : ''
+                }`}
+              >
+                Siguiente Pregunta
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
+
+        {feedbackElement}
+      </div>
+    );
+  }
+
+  // Si llegamos aquí, devolvemos la pantalla de carga por defecto
+  return (
+    <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900 via-purple-900 to-slate-900 flex flex-col items-center p-4">
+      <div className="w-full max-w-4xl relative">
+        <Card className="bg-white/10 backdrop-blur-md border-white/20 shadow-xl">
+          <CardHeader>
+            <CardTitle className="text-2xl text-white">Cargando...</CardTitle>
+            <CardDescription className="text-white/70">
+              Preparando el juego...
+            </CardDescription>
+          </CardHeader>
         </Card>
       </div>
     </div>
-  )
+  );
 }
 
