@@ -222,8 +222,11 @@ export default function CalculadoraPage() {
     const divisoresEncontrados: number[] = []
     const binomiosRepetidos = new Map<string, number>()
     
-    // Guardamos el coeficiente principal original
+    // Dividir todos los coeficientes por el coeficiente principal si es diferente de 1 o -1
     const coefPrincipal = polinomioActual[0]
+    if (Math.abs(coefPrincipal) !== 1) {
+      polinomioActual = polinomioActual.map(c => c / coefPrincipal)
+    }
     
     while (polinomioActual.length > 1) {
       const terminoIndependiente = polinomioActual[polinomioActual.length - 1]
@@ -283,7 +286,7 @@ export default function CalculadoraPage() {
     })
 
     if (factoresConExponentes.length > 0) {
-      respuestaFinal = factoresConExponentes.join(' ')
+      respuestaFinal = factoresConExponentes.join(' × ')
       if (polinomioActual.length > 1) {
         const polinomioRestante = mostrarPolinomio(polinomioActual)
         if (polinomioRestante !== "1" && polinomioRestante !== "0") {
@@ -294,10 +297,7 @@ export default function CalculadoraPage() {
       respuestaFinal = mostrarPolinomio(polinomioActual)
     }
 
-    // Agregar el coeficiente principal si es diferente de 1 o -1
-    if (Math.abs(coefPrincipal) !== 1) {
-      respuestaFinal = `${Math.abs(coefPrincipal)}${respuestaFinal}`
-    }
+    // Solo agregar el signo negativo si el coeficiente principal es negativo
     if (coefPrincipal < 0) {
       respuestaFinal = `-${respuestaFinal}`
     }
