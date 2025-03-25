@@ -207,54 +207,78 @@ export default function QuizPage() {
     const preguntas: Pregunta[] = [];
     const numPreguntas = 10;
     
-    for (let i = 0; i < numPreguntas; i++) {
-      // Generar coeficientes más pequeños según la dificultad
-      const maxCoef = dificultad === "facil" ? 5 : dificultad === "medio" ? 8 : 12;
-      const minCoef = dificultad === "facil" ? -5 : dificultad === "medio" ? -8 : -12;
+    const generarPreguntaValida = (): { polinomio: number[]; divisor: number; residuo: number } => {
+      // Ajustar coeficientes según dificultad
+      const maxCoef = dificultad === "facil" ? 3 : dificultad === "medio" ? 4 : 5;
+      const minCoef = -maxCoef;
       
-      // Generar polinomio con coeficientes más manejables
-      const grado = dificultad === "facil" ? 3 : dificultad === "medio" ? 4 : 5;
+      // Ajustar grado según dificultad
+      const grado = dificultad === "facil" ? 2 : dificultad === "medio" ? 3 : 4;
+      
+      // Generar polinomio
       const polinomio = Array.from({ length: grado + 1 }, () => 
         Math.floor(Math.random() * (maxCoef - minCoef + 1)) + minCoef
       );
       
-      // Asegurarse de que el coeficiente principal no sea cero
+      // Asegurar coeficiente principal no nulo
       if (polinomio[0] === 0) {
-        polinomio[0] = Math.floor(Math.random() * (maxCoef - 1)) + 1;
+        polinomio[0] = Math.floor(Math.random() * maxCoef) + 1;
       }
       
-      // Generar divisor más pequeño (evitar el cero)
+      // Generar divisor pequeño (evitar cero)
+      const maxDivisor = dificultad === "facil" ? 2 : dificultad === "medio" ? 3 : 4;
       let divisor;
       do {
-        divisor = Math.floor(Math.random() * (maxCoef - minCoef + 1)) + minCoef;
+        divisor = Math.floor(Math.random() * (maxDivisor * 2 + 1)) - maxDivisor;
       } while (divisor === 0);
       
-      // Calcular el residuo correcto
+      // Calcular residuo
       const residuo = evaluarRuffini(polinomio, divisor);
       
-      // Generar opciones incorrectas cercanas al residuo correcto
-      const opcionesIncorrectas = new Set<string>();
-      while (opcionesIncorrectas.size < 3) {
-        const delta = Math.floor(Math.random() * 5) + 1;
-        const signo = Math.random() < 0.5 ? 1 : -1;
-        const opcionIncorrecta = residuo + (delta * signo);
-        if (opcionIncorrecta !== residuo) {
-          opcionesIncorrectas.add(opcionIncorrecta.toString());
+      return { polinomio, divisor, residuo };
+    };
+
+    while (preguntas.length < numPreguntas) {
+      let intentos = 0;
+      let preguntaValida = false;
+      let datos;
+      
+      // Intentar generar una pregunta con residuo en el rango deseado
+      while (!preguntaValida && intentos < 10) {
+        datos = generarPreguntaValida();
+        if (datos.residuo >= 0 && datos.residuo <= 150) {
+          preguntaValida = true;
         }
+        intentos++;
       }
       
-      // Crear array de opciones y mezclarlas
-      const opciones = [...opcionesIncorrectas, residuo.toString()]
-        .sort(() => Math.random() - 0.5);
-      
-      preguntas.push({
-        polinomio,
-        divisor,
-        opciones,
-        respuestaCorrecta: residuo.toString()
-      });
+      if (preguntaValida && datos) {
+        // Generar opciones incorrectas cercanas al residuo
+        const opcionesIncorrectas = new Set<string>();
+        while (opcionesIncorrectas.size < 3) {
+          const delta = Math.floor(Math.random() * 5) + 1;
+          const signo = Math.random() < 0.5 ? 1 : -1;
+          const opcionIncorrecta = datos.residuo + (delta * signo);
+          
+          // Asegurar que las opciones incorrectas también estén en el rango válido
+          if (opcionIncorrecta !== datos.residuo && opcionIncorrecta >= 0 && opcionIncorrecta <= 150) {
+            opcionesIncorrectas.add(opcionIncorrecta.toString());
+          }
+        }
+        
+        // Crear array de opciones y mezclarlas
+        const opciones = [...opcionesIncorrectas, datos.residuo.toString()]
+          .sort(() => Math.random() - 0.5);
+        
+        preguntas.push({
+          polinomio: datos.polinomio,
+          divisor: datos.divisor,
+          opciones,
+          respuestaCorrecta: datos.residuo.toString()
+        });
+      }
     }
-    
+
     return preguntas.sort(() => Math.random() - 0.5);
   };
 
@@ -690,7 +714,7 @@ export default function QuizPage() {
                     <CardDescription className="text-white/70">
                       Nivel: {dificultad === "facil" ? "Fácil" : dificultad === "medio" ? "Medio" : "Difícil"}
                   </CardDescription>
-                  </div>
+                </div>
                   <div className="flex flex-col items-end gap-2">
                     <div className="bg-white/10 rounded-full px-3 py-1">
                       <span className="text-sm font-medium text-white">Puntos: {puntuacion}</span>
