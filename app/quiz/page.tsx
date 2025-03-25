@@ -233,11 +233,16 @@ export default function QuizPage() {
   }, [iniciado, dificultad])
 
   const iniciarJuego = () => {
-    setIniciado(true)
-    setVidas(3)
-    setPuntuacion(0)
-    setJuegoTerminado(false)
-  }
+    setIniciado(true);
+    setVidas(3);
+    setPuntuacion(0);
+    setJuegoTerminado(false);
+    setPreguntas(generarPreguntas(dificultad));
+    setPreguntaActual(0);
+    setRespuestaSeleccionada(null);
+    setRespuestaEnviada(false);
+    setMostrarFeedback(false);
+  };
 
   const verificarRespuesta = (respuesta: string) => {
     if (respuestaEnviada) return; // Evitar cambios después de enviar la respuesta
@@ -431,7 +436,7 @@ export default function QuizPage() {
   // Renderizar pantalla de fin de juego
   if (juegoTerminado) {
     return (
-      <div className="min-h-screen bg-[conic-gradient(at_top,_var(--tw-gradient-stops))] from-indigo-900 via-purple-900 to-slate-900 flex flex-col items-center p-4">
+      <div className="min-h-screen bg-[conic-gradient(at_top,_var(--tw-gradient-stops))] from-indigo-900 via-purple-900 to-slate-900 flex flex-col items-center justify-center p-4">
         <div className="w-full max-w-4xl">
           <div className="flex justify-between items-center mb-8">
             <Link href="/">
@@ -517,9 +522,6 @@ export default function QuizPage() {
     )
   }
 
-  // Renderizar pregunta actual
-  const preguntaActualObj = preguntas[preguntaActual]
-
   // Mostrar feedback en el centro
   {mostrarFeedback && (
     <div className="fixed inset-0 flex items-center justify-center z-50">
@@ -530,109 +532,87 @@ export default function QuizPage() {
   )}
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900 via-purple-900 to-slate-900 flex flex-col items-center p-4">
-      <div className="w-full max-w-4xl relative">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="flex justify-between items-center mb-8 relative z-10"
-        >
+    <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900 via-purple-900 to-slate-900 flex flex-col items-center justify-center p-4">
+      <div className="w-full max-w-4xl">
+        <div className="flex justify-between items-center mb-8">
           <Link href="/">
-            <Button variant="ghost" className="text-white hover:bg-white/10 backdrop-blur-sm">
+            <Button variant="ghost" className="text-white hover:bg-white/20 backdrop-blur-sm">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Volver al inicio
             </Button>
           </Link>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 text-white">
-              <Heart className="h-5 w-5 text-red-400" />
-              <span>{vidas}</span>
-            </div>
-            <div className="flex items-center gap-2 text-white">
-              <Trophy className="h-5 w-5 text-yellow-400" />
-              <span>{puntuacion}</span>
-            </div>
-          </div>
-        </motion.div>
+          <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-400 flex items-center">
+            <Trophy className="mr-3 h-8 w-8 text-yellow-400" />
+            Resultados
+          </h1>
+          <div className="w-[100px]"></div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="relative z-10"
-        >
-          <Card className="bg-white/10 backdrop-blur-md border-white/20 shadow-xl">
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <div>
-                  <CardTitle className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
-                    Pregunta {preguntaActual + 1} de {preguntas.length}
-                  </CardTitle>
-                  <CardDescription className="text-white/80">
-                    Resuelve el polinomio usando el método de Ruffini
-                  </CardDescription>
-                </div>
-                <Progress value={(preguntaActual + 1) * (100 / preguntas.length)} className="w-32" />
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <Progress value={(preguntaActual + 1) * (100 / preguntas.length)} className="h-2 bg-white/10" />
-
-              <div className="space-y-4">
-                <p className="text-white/90 text-lg mb-2">Usando el método de Ruffini, ¿cuál es el residuo al dividir el siguiente polinomio entre (x {preguntas[preguntaActual].divisor >= 0 ? '-' : '+'} {Math.abs(preguntas[preguntaActual].divisor)})?</p>
-                <div className="text-2xl font-mono text-white">
-                  <Polinomio terminos={preguntas[preguntaActual].polinomio} />
+        <Card className="bg-white/10 backdrop-blur-md border-white/20 text-white">
+          <CardHeader>
+            <CardTitle className="text-center text-3xl">
+              {vidas > 0 ? "¡Felicitaciones!" : "¡Buen intento!"}
+            </CardTitle>
+            <CardDescription className="text-white/80 text-center text-lg">
+              {vidas > 0
+                ? "Has demostrado tu dominio del método de Ruffini"
+                : "La práctica lleva a la perfección. ¡Inténtalo de nuevo!"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-8">
+            <div className="flex flex-col items-center justify-center py-8">
+              <div className="relative">
+                <Trophy className="h-32 w-32 text-yellow-400 animate-pulse" />
+                <div className="absolute -top-4 -right-4 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full p-3">
+                  <span className="text-xl font-bold">{puntuacion}</span>
                 </div>
               </div>
-
-              <RadioGroup
-                value={respuestaSeleccionada || undefined}
-                onValueChange={verificarRespuesta}
-                className="space-y-4"
-                disabled={respuestaEnviada}
-              >
-                {preguntas[preguntaActual].opciones.map((opcion, index) => (
-                  <div key={index}>
-                    <RadioGroupItem
-                      value={opcion}
-                      id={`opcion-${index}`}
-                      className="peer sr-only"
-                      disabled={respuestaEnviada}
-                    />
-                    <Label
-                      htmlFor={`opcion-${index}`}
-                      className={`flex items-center justify-center p-4 rounded-lg border-2 cursor-pointer transition-all duration-200
-                        ${respuestaSeleccionada === opcion
-                          ? respuestaSeleccionada === preguntas[preguntaActual].respuestaCorrecta
-                            ? 'bg-green-500/20 border-green-500 text-green-200'
-                            : 'bg-red-500/20 border-red-500 text-red-200'
-                          : 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/30'
-                        }
-                        ${respuestaEnviada ? 'cursor-not-allowed' : ''}`}
-                    >
-                      {opcion}
-                    </Label>
-                  </div>
+              <p className="text-white/80 mt-4 text-lg">
+                Nivel: {dificultad === "facil" ? "Fácil" : dificultad === "medio" ? "Medio" : "Experto"}
+              </p>
+              <div className="flex items-center mt-4 space-x-2">
+                {Array.from({ length: vidas }).map((_, i) => (
+                  <Heart key={i} className="h-8 w-8 text-red-500 fill-red-500 animate-bounce" style={{ animationDelay: `${i * 200}ms` }} />
                 ))}
-              </RadioGroup>
-
-              <div className="flex justify-center">
-                <Button
-                  onClick={siguientePregunta}
-                  disabled={!respuestaEnviada}
-                  className={`px-8 py-6 text-lg font-semibold rounded-xl shadow-lg transition-all duration-300
-                    ${respuestaEnviada
-                      ? 'bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white'
-                      : 'bg-white/10 text-white/50 cursor-not-allowed'
-                    }`}
-                >
-                  {preguntaActual === preguntas.length - 1 ? "Finalizar" : "Siguiente"}
-                </Button>
+                {Array.from({ length: 3 - vidas }).map((_, i) => (
+                  <Heart key={i + vidas} className="h-8 w-8 text-red-500/30" />
+                ))}
               </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+            </div>
+
+            <div className="bg-white/10 p-6 rounded-lg space-y-3">
+              <h3 className="font-semibold text-xl mb-4">Estadísticas Finales</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-white/5 p-4 rounded-lg text-center">
+                  <p className="text-sm text-white/60">Preguntas Completadas</p>
+                  <p className="text-2xl font-bold">{preguntaActual + 1}/{preguntas.length}</p>
+                </div>
+                <div className="bg-white/5 p-4 rounded-lg text-center">
+                  <p className="text-sm text-white/60">Precisión</p>
+                  <p className="text-2xl font-bold">
+                    {Math.round((puntuacion / ((preguntaActual + 1) * (dificultad === "facil" ? 10 : dificultad === "medio" ? 20 : 30))) * 100)}%
+                  </p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+          <CardFooter className="flex flex-col sm:flex-row gap-4">
+            <Button 
+              onClick={reiniciarJuego} 
+              className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-lg font-bold"
+            >
+              Intentar de Nuevo
+            </Button>
+            <Link href="/" className="w-full">
+              <Button 
+                variant="outline" 
+                className="w-full border-white/30 hover:bg-white/20 text-white text-lg font-bold"
+              >
+                Volver al Inicio
+              </Button>
+            </Link>
+          </CardFooter>
+        </Card>
       </div>
     </div>
   )
