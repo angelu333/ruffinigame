@@ -656,16 +656,16 @@ export default function QuizPage() {
           <div className="quiz-content space-y-4">
             {/* Header con botón de regreso y título */}
             <div className="flex justify-between items-center mb-4">
-              <Link href="/">
+          <Link href="/">
                 <Button variant="ghost" className="text-white hover:bg-white/10">
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Volver al inicio
-                </Button>
-              </Link>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Volver al inicio
+            </Button>
+          </Link>
               <h1 className="text-2xl font-bold text-white">
                 Quiz de Ruffini
               </h1>
-              <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4">
                 <Button
                   variant="ghost"
                   className="text-white hover:bg-white/10"
@@ -684,18 +684,18 @@ export default function QuizPage() {
                     <span className="text-xs">⚡</span>
                   </Button>
                 )}
-              </div>
+            </div>
             </div>
 
             {/* Contenido principal */}
             <Card className="bg-white/10 backdrop-blur-md border-white/20">
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <div>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <div>
                     <CardTitle className="text-white">Pregunta {preguntaActual + 1} de {preguntas.length}</CardTitle>
                     <CardDescription className="text-white/70">
                       Nivel: {dificultad === "facil" ? "Fácil" : dificultad === "medio" ? "Medio" : "Difícil"}
-                    </CardDescription>
+                  </CardDescription>
                   </div>
                   <div className="flex flex-col items-end gap-2">
                     <div className="bg-white/10 rounded-full px-3 py-1">
@@ -710,8 +710,8 @@ export default function QuizPage() {
                       </div>
                     </div>
                   </div>
-                </div>
-              </CardHeader>
+              </div>
+            </CardHeader>
               
               <CardContent className="space-y-4">
                 <div className="text-lg text-white mb-4">
@@ -740,13 +740,13 @@ export default function QuizPage() {
                               : 'border-white/20 text-white/60'
                             : 'border-white/20 text-white hover:border-white/40 hover:bg-white/5'
                         }`}
-                        disabled={respuestaEnviada}
-                      >
-                        {opcion}
+                disabled={respuestaEnviada}
+                    >
+                      {opcion}
                       </motion.button>
                     );
                   })}
-                </div>
+                  </div>
               </CardContent>
               
               <CardFooter className="flex justify-between items-center pt-4">
@@ -774,7 +774,7 @@ export default function QuizPage() {
         </div>
 
         {feedbackElement}
-      </div>
+              </div>
     );
   }
 
@@ -789,7 +789,7 @@ export default function QuizPage() {
               Preparando el juego...
             </CardDescription>
           </CardHeader>
-        </Card>
+          </Card>
       </div>
     </div>
   );
