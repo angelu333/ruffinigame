@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
-import { ArrowLeft, Heart, GamepadIcon as GameController, Trophy } from "lucide-react"
+import { ArrowLeft, Heart, GamepadIcon as GameController, Trophy, ArrowRight } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { motion, AnimatePresence } from "framer-motion"
@@ -20,12 +20,13 @@ type TerminoPolinomio = {
   coeficiente: number
   exponente: number
 }
-interface Pregunta {
+type Pregunta = {
   polinomio: number[]
   divisor: number
   opciones: string[]
   respuestaCorrecta: string
   opcionesOcultas?: boolean[]
+  pregunta?: string
 }
 
 // Componente para renderizar un término del polinomio con exponentes como superíndices
@@ -107,6 +108,7 @@ export default function QuizPage() {
   const [powerUpDisponible, setPowerUpDisponible] = useState(true);
   const [musicaActiva, setMusicaActiva] = useState(false);
   const [racha, setRacha] = useState(0)
+  const [mejorRacha, setMejorRacha] = useState(0)
 
   // Efectos de sonido
   const [playAcierto] = useSound('/sounds/success.mp3', { 
@@ -188,6 +190,19 @@ export default function QuizPage() {
       .map(String)
   }
 
+  const generarPregunta = (polinomio: number[], divisor: number): string => {
+    return (
+      <div className="space-y-2">
+        <p>Calcula el residuo de la división:</p>
+        <div className="flex items-center flex-wrap gap-2 text-xl md:text-2xl font-medium">
+          <Polinomio terminos={polinomio} />
+          <span className="mx-2">÷</span>
+          <span>(x - {divisor})</span>
+        </div>
+      </div>
+    ).toString();
+  };
+
   // Generar preguntas según la dificultad
   const generarPreguntas = (dificultad: "facil" | "medio" | "dificil"): Pregunta[] => {
     const preguntas: Pregunta[] = []
@@ -247,7 +262,10 @@ export default function QuizPage() {
     }
 
     // Mezclar el orden de las preguntas
-    return preguntas.sort(() => Math.random() - 0.5)
+    return preguntas.sort(() => Math.random() - 0.5).map(p => ({
+      ...p,
+      pregunta: generarPregunta(p.polinomio, p.divisor)
+    }));
   }
 
   useEffect(() => {
@@ -307,6 +325,11 @@ export default function QuizPage() {
     setPowerUpDisponible(false);
   };
 
+  const obtenerEmojiAleatorio = () => {
+    const emojisCorrectos = ['✨', '🎉', '🌟', '⭐', '🏆'];
+    return emojisCorrectos[Math.floor(Math.random() * emojisCorrectos.length)];
+  };
+
   const verificarRespuesta = (respuesta: string) => {
     if (respuestaEnviada) return;
     
@@ -348,7 +371,7 @@ export default function QuizPage() {
         }, 200);
       }
       
-      setFeedbackEmoji('✨');
+      setFeedbackEmoji(obtenerEmojiAleatorio());
       setPuntuacion(prev => prev + 1);
       setRacha(prev => prev + 1);
     } else {
@@ -624,132 +647,134 @@ export default function QuizPage() {
           .shake {
             animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
           }
+          .quiz-container {
+            max-height: 90vh;
+            overflow-y: auto;
+          }
+          .quiz-content {
+            height: auto;
+            min-height: 0;
+          }
         `}</style>
         <div className="w-full max-w-4xl quiz-container">
-          <div className="flex justify-between items-center mb-8">
-            <Link href="/">
-              <Button variant="ghost" className="text-white hover:bg-white/10">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Volver al inicio
-              </Button>
-            </Link>
-            <h1 className="text-xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 flex items-center">
-              <GameController className="mr-2 h-6 w-6 md:h-8 md:w-8" />
-              Quiz de Ruffini
-            </h1>
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                className="text-white hover:bg-white/10"
-                onClick={() => setMusicaActiva(!musicaActiva)}
-              >
-                {musicaActiva ? '🔊' : '🔈'}
-              </Button>
-              {powerUpDisponible && (
+          <div className="quiz-content space-y-4">
+            {/* Header con botón de regreso y título */}
+            <div className="flex justify-between items-center mb-4">
+              <Link href="/">
+                <Button variant="ghost" className="text-white hover:bg-white/10">
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Volver al inicio
+                </Button>
+              </Link>
+              <h1 className="text-2xl font-bold text-white">
+                Quiz de Ruffini
+              </h1>
+              <div className="flex items-center gap-4">
                 <Button
                   variant="ghost"
-                  className="text-white hover:bg-white/10 flex items-center gap-2"
-                  onClick={usar5050}
-                  disabled={respuestaEnviada}
+                  className="text-white hover:bg-white/10"
+                  onClick={() => setMusicaActiva(!musicaActiva)}
                 >
-                  <span>50:50</span>
-                  <span className="text-xs">⚡</span>
+                  {musicaActiva ? '🔊' : '🔈'}
                 </Button>
-              )}
+                {powerUpDisponible && (
+                  <Button
+                    variant="ghost"
+                    className="text-white hover:bg-white/10 flex items-center gap-2"
+                    onClick={usar5050}
+                    disabled={respuestaEnviada}
+                  >
+                    <span>50:50</span>
+                    <span className="text-xs">⚡</span>
+                  </Button>
+                )}
+              </div>
             </div>
-          </div>
 
-          <Card className="bg-white/10 backdrop-blur-md border-white/20 text-white mb-4">
-            <CardHeader className="pb-3">
-              <div className="flex justify-between items-center">
-                <div>
-                  <CardTitle>Pregunta {preguntaActual + 1} de {preguntas.length}</CardTitle>
-                  <CardDescription className="text-white/70">
-                    Nivel: {dificultad === "facil" ? "Fácil" : dificultad === "medio" ? "Medio" : "Difícil"}
-                  </CardDescription>
+            {/* Contenido principal */}
+            <Card className="bg-white/10 backdrop-blur-md border-white/20">
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle className="text-white">Pregunta {preguntaActual + 1} de {preguntas.length}</CardTitle>
+                    <CardDescription className="text-white/70">
+                      Nivel: {dificultad === "facil" ? "Fácil" : dificultad === "medio" ? "Medio" : "Difícil"}
+                    </CardDescription>
+                  </div>
+                  <div className="flex flex-col items-end gap-2">
+                    <div className="bg-white/10 rounded-full px-3 py-1">
+                      <span className="text-sm font-medium text-white">Puntos: {puntuacion}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="text-yellow-400">
+                        🔥 {racha}
+                      </div>
+                      <div className="text-sm text-white/70">
+                        Mejor: {mejorRacha}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="bg-white/10 rounded-full px-3 py-1">
-                  <span className="text-sm font-medium">Puntos: {puntuacion}</span>
+              </CardHeader>
+              
+              <CardContent className="space-y-4">
+                <div className="text-lg text-white mb-4">
+                  {preguntas[preguntaActual].pregunta}
                 </div>
-              </div>
-              <Progress value={(preguntaActual / preguntas.length) * 100} className="mt-2 bg-white/20" />
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="bg-white/5 p-4 rounded-lg">
-                <p className="text-lg font-medium mb-4">Calcula el residuo de la división:</p>
-                <div className="flex items-center flex-wrap gap-2 text-xl md:text-2xl font-medium mb-4">
-                  <Polinomio terminos={preguntas[preguntaActual].polinomio} />
-                  <span className="mx-2">÷</span>
-                  <span>(x - {preguntas[preguntaActual].divisor})</span>
-                </div>
-              </div>
-
-              <RadioGroup
-                value={respuestaSeleccionada || ""} 
-                onValueChange={respuestaEnviada ? undefined : verificarRespuesta}
-                className="space-y-3"
-              >
-                {preguntas[preguntaActual].opciones.map((opcion, index) => {
-                  // Si la opción está oculta por el power-up 50:50, no la renderizamos
-                  if (preguntas[preguntaActual].opcionesOcultas?.[index]) {
-                    return null;
-                  }
-                  
-                  return (
-                    <motion.div
-                      key={index}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: index * 0.1 }}
-                      className={`flex items-center space-x-2 rounded-lg border p-4 transition-all duration-300 ${
-                        respuestaEnviada
-                          ? opcion === preguntas[preguntaActual].respuestaCorrecta
-                            ? 'border-green-500 bg-green-500/20'
-                            : respuestaSeleccionada === opcion
-                            ? 'border-red-500 bg-red-500/20'
-                            : 'border-white/20 opacity-60'
-                          : 'border-white/20 hover:border-white/40 cursor-pointer'
-                      }`}
-                    >
-                      <RadioGroupItem value={opcion} id={`opcion-${index}`} disabled={respuestaEnviada} />
-                      <Label htmlFor={`opcion-${index}`} className="flex-1 cursor-pointer">
+                
+                <div className="grid gap-3">
+                  {preguntas[preguntaActual].opciones.map((opcion, index) => {
+                    if (preguntas[preguntaActual].opcionesOcultas?.[index]) {
+                      return null;
+                    }
+                    
+                    return (
+                      <motion.button
+                        key={index}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: index * 0.1 }}
+                        onClick={() => !respuestaEnviada && verificarRespuesta(opcion)}
+                        className={`w-full text-left p-4 rounded-lg border transition-all duration-300 ${
+                          respuestaEnviada
+                            ? opcion === preguntas[preguntaActual].respuestaCorrecta
+                              ? 'border-green-500 bg-green-500/20 text-white'
+                              : respuestaSeleccionada === opcion
+                              ? 'border-red-500 bg-red-500/20 text-white'
+                              : 'border-white/20 text-white/60'
+                            : 'border-white/20 text-white hover:border-white/40 hover:bg-white/5'
+                        }`}
+                        disabled={respuestaEnviada}
+                      >
                         {opcion}
-                      </Label>
-                      {respuestaEnviada && opcion === preguntas[preguntaActual].respuestaCorrecta && (
-                        <motion.span 
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          className="text-green-500"
-                        >
-                          ✓
-                        </motion.span>
-                      )}
-                      {respuestaEnviada && respuestaSeleccionada === opcion && opcion !== preguntas[preguntaActual].respuestaCorrecta && (
-                        <motion.span 
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          className="text-red-500"
-                        >
-                          ✗
-                        </motion.span>
-                      )}
-                    </motion.div>
-                  );
-                })}
-              </RadioGroup>
-            </CardContent>
-            <CardFooter>
-                <Button
-                  onClick={siguientePregunta}
-                  disabled={!respuestaEnviada}
-                className={`w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 font-medium ${
-                  !respuestaEnviada ? 'opacity-50' : ''
-                }`}
-              >
-                Siguiente Pregunta
-                </Button>
-            </CardFooter>
-          </Card>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </CardContent>
+              
+              <CardFooter className="flex justify-between items-center pt-4">
+                <div className="flex items-center">
+                  {Array.from({ length: vidas }).map((_, i) => (
+                    <Heart key={i} className="h-6 w-6 text-red-500 fill-red-500" />
+                  ))}
+                  {Array.from({ length: 3 - vidas }).map((_, i) => (
+                    <Heart key={i + vidas} className="h-6 w-6 text-red-500/30" />
+                  ))}
+                </div>
+                
+                {respuestaEnviada && (
+                  <Button
+                    onClick={siguientePregunta}
+                    className="bg-white/10 text-white hover:bg-white/20"
+                  >
+                    Siguiente pregunta
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                )}
+              </CardFooter>
+            </Card>
+          </div>
         </div>
 
         {feedbackElement}
