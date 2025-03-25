@@ -238,19 +238,17 @@ export default function CalculadoraPage() {
         if (polinomioActual.length === 3) {
           const [a, b, c] = polinomioActual
           const discriminante = b * b - 4 * a * c
-          if (discriminante > 0) {
+          if (discriminante >= 0) {
             const sqrtDisc = Math.sqrt(discriminante)
-            if (Number.isInteger(sqrtDisc)) {
-              const x1 = (-b + sqrtDisc) / (2 * a)
-              const x2 = (-b - sqrtDisc) / (2 * a)
-              if (Number.isInteger(x1) && Number.isInteger(x2)) {
-                const binomio1 = `(x ${x1 >= 0 ? '-' : '+'} ${Math.abs(x1)})`
-                const binomio2 = `(x ${x2 >= 0 ? '-' : '+'} ${Math.abs(x2)})`
-                binomiosRepetidos.set(binomio1, (binomiosRepetidos.get(binomio1) || 0) + 1)
-                binomiosRepetidos.set(binomio2, (binomiosRepetidos.get(binomio2) || 0) + 1)
-                polinomioActual = [1]
-                continue
-              }
+            const x1 = (-b + sqrtDisc) / (2 * a)
+            const x2 = (-b - sqrtDisc) / (2 * a)
+            if (Number.isInteger(x1) && Number.isInteger(x2)) {
+              const binomio1 = `(x ${x1 >= 0 ? '-' : '+'} ${Math.abs(x1)})`
+              const binomio2 = `(x ${x2 >= 0 ? '-' : '+'} ${Math.abs(x2)})`
+              binomiosRepetidos.set(binomio1, (binomiosRepetidos.get(binomio1) || 0) + 1)
+              binomiosRepetidos.set(binomio2, (binomiosRepetidos.get(binomio2) || 0) + 1)
+              polinomioActual = [1]
+              continue
             }
           }
         }
