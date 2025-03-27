@@ -98,69 +98,139 @@ export default function QuizPage() {
   const [mostrarFeedback, setMostrarFeedback] = useState(false)
 
   // Generar preguntas según la dificultad
-  const generarPreguntas = useCallback(() => {
+  const generarPreguntaAleatoria = useCallback((dificultad: Dificultad): Pregunta => {
     try {
-      // Generamos preguntas dinámicamente
-      const generarPreguntaAleatoria = (dificultad: Dificultad): Pregunta => {
-        const grado = dificultad === "facil" ? 3 : dificultad === "medio" ? 4 : 5
-        const maxCoef = dificultad === "facil" ? 5 : dificultad === "medio" ? 8 : 10
+      if (!dificultad) throw new Error("Dificultad no especificada")
 
-        // Generar coeficientes aleatorios
-        const coeficientes = Array.from(
-          { length: grado + 1 },
-          () => Math.floor(Math.random() * (maxCoef * 2 + 1)) - maxCoef,
-        )
+      // Asignar grado según nivel de dificultad
+      const grado = dificultad === "facil" ? 3 : dificultad === "medio" ? 4 : 5
+      // Ajustar coeficientes según nivel
+      const maxCoef = dificultad === "facil" ? 5 : dificultad === "medio" ? 8 : 10
 
-        // Asegurar que el coeficiente principal no sea 0
-        if (coeficientes[0] === 0) coeficientes[0] = 1
+      // Generar coeficientes aleatorios
+      const coeficientes = Array.from(
+        { length: grado + 1 },
+        () => Math.floor(Math.random() * (maxCoef * 2 + 1)) - maxCoef,
+      )
 
-        // Generar un divisor aleatorio que no sea 0
-        let divisor = 0
-        while (divisor === 0) {
-          divisor = Math.floor(Math.random() * 5) - 2
-        }
+      // Asegurar que el coeficiente principal no sea 0
+      if (coeficientes[0] === 0) coeficientes[0] = 1
 
-        // Calcular el resultado usando Ruffini
-        const resultado = coeficientes.reduce((acc, coef) => acc * divisor + coef, 0)
+      // Generar un divisor aleatorio que no sea 0
+      let divisor = 0
+      while (divisor === 0) {
+        divisor = Math.floor(Math.random() * 5) - 2
+      }
 
-        // Generar opciones aleatorias únicas
-        const opcionesBase = new Set([resultado])
-        while (opcionesBase.size < 4) {
-          const opcion = resultado + Math.floor(Math.random() * 8) - 4
-          if (opcion !== resultado) {
-            opcionesBase.add(opcion)
-          }
-        }
+      // Calcular el resultado usando Ruffini
+      const resultado = coeficientes.reduce((acc, coef) => acc * divisor + coef, 0)
 
-        // Mezclar opciones
-        const opciones = Array.from(opcionesBase)
-          .sort(() => Math.random() - 0.5)
-          .map(String)
-        const respuestaCorrecta = opciones.indexOf(String(resultado))
-
-        // Crear términos del polinomio para renderizado
-        const terminosPolinomio: TerminoPolinomio[] = coeficientes
-          .map((coef, index) => ({
-            coeficiente: coef,
-            exponente: grado - index,
-          }))
-          .filter((termino) => termino.coeficiente !== 0)
-
-        if (terminosPolinomio.length === 0) {
-          terminosPolinomio.push({ coeficiente: 0, exponente: 0 })
-        }
-
-        return {
-          id: Math.random(),
-          polinomio: terminosPolinomio,
-          divisor,
-          opciones,
-          respuestaCorrecta,
-          explicacion: `Al aplicar Ruffini con divisor (x${divisor >= 0 ? "-" : "+"}${Math.abs(divisor)}), el residuo es ${resultado}.`,
+      // Generar opciones aleatorias únicas
+      const opcionesBase = new Set([resultado])
+      while (opcionesBase.size < 4) {
+        const opcion = resultado + Math.floor(Math.random() * 8) - 4
+        if (opcion !== resultado) {
+          opcionesBase.add(opcion)
         }
       }
 
-      // Generar conjunto de preguntas según la dificultad
+      // Mezclar opciones
+      const opciones = Array.from(opcionesBase)
+        .sort(() => Math.random() - 0.5)
+        .map(String)
+      const respuestaCorrecta = opciones.indexOf(String(resultado))
+
+      // Crear términos del polinomio para renderizado
+      const terminosPolinomio: TerminoPolinomio[] = coeficientes
+        .map((coef, index) => ({
+          coeficiente: coef,
+          exponente: grado - index,
+        }))
+        .filter((termino) => termino.coeficiente !== 0)
+
+      if (terminosPolinomio.length === 0) {
+        terminosPolinomio.push({ coeficiente: 0, exponente: 0 })
+      }
+
+      return {
+        id: Math.random(),
+        polinomio: terminosPolinomio,
+        divisor,
+        opciones,
+        respuestaCorrecta,
+        explicacion: `Al aplicar Ruffini con divisor (x${divisor >= 0 ? "-" : "+"}${Math.abs(divisor)}), el residuo es ${resultado}.`,
+      }
+    } catch (error) {
+      console.error("Error al generar pregunta:", error)
+      return {
+        id: Math.random(),
+        polinomio: [{ coeficiente: 1, exponente: 1 }],
+        divisor: 1,
+        opciones: ["0", "1", "2", "3"],
+        respuestaCorrecta: 0,
+        explicacion: "Ha ocurrido un error al generar la pregunta."
+      }
+    }
+    const grado = dificultad === "facil" ? 3 : dificultad === "medio" ? 4 : 5
+    const maxCoef = dificultad === "facil" ? 5 : dificultad === "medio" ? 8 : 10
+
+    // Generar coeficientes aleatorios
+    const coeficientes = Array.from(
+      { length: grado + 1 },
+      () => Math.floor(Math.random() * (maxCoef * 2 + 1)) - maxCoef,
+    )
+
+    // Asegurar que el coeficiente principal no sea 0
+    if (coeficientes[0] === 0) coeficientes[0] = 1
+
+    // Generar un divisor aleatorio que no sea 0
+    let divisor = 0
+    while (divisor === 0) {
+      divisor = Math.floor(Math.random() * 5) - 2
+    }
+
+    // Calcular el resultado usando Ruffini
+    const resultado = coeficientes.reduce((acc, coef) => acc * divisor + coef, 0)
+
+    // Generar opciones aleatorias únicas
+    const opcionesBase = new Set([resultado])
+    while (opcionesBase.size < 4) {
+      const opcion = resultado + Math.floor(Math.random() * 8) - 4
+      if (opcion !== resultado) {
+        opcionesBase.add(opcion)
+      }
+    }
+
+    // Mezclar opciones
+    const opciones = Array.from(opcionesBase)
+      .sort(() => Math.random() - 0.5)
+      .map(String)
+    const respuestaCorrecta = opciones.indexOf(String(resultado))
+
+    // Crear términos del polinomio para renderizado
+    const terminosPolinomio: TerminoPolinomio[] = coeficientes
+      .map((coef, index) => ({
+        coeficiente: coef,
+        exponente: grado - index,
+      }))
+      .filter((termino) => termino.coeficiente !== 0)
+
+    if (terminosPolinomio.length === 0) {
+      terminosPolinomio.push({ coeficiente: 0, exponente: 0 })
+    }
+
+    return {
+      id: Math.random(),
+      polinomio: terminosPolinomio,
+      divisor,
+      opciones,
+      respuestaCorrecta,
+      explicacion: `Al aplicar Ruffini con divisor (x${divisor >= 0 ? "-" : "+"}${Math.abs(divisor)}), el residuo es ${resultado}.`,
+    }
+  }, []);
+
+  const generarPreguntas = useCallback(() => {
+    try {
       const nuevasPreguntas = Array.from({ length: 5 }, () => generarPreguntaAleatoria(dificultad))
       setPreguntas(nuevasPreguntas)
       setPreguntaActual(0)
@@ -170,84 +240,15 @@ export default function QuizPage() {
     } catch (error) {
       console.error("Error al generar preguntas:", error)
     }
-  }, [dificultad])
+  }, [dificultad, generarPreguntaAleatoria])
 
   useEffect(() => {
     if (iniciado) {
       generarPreguntas()
     }
   }, [iniciado, generarPreguntas])
-    try {
-      // Generamos preguntas dinámicamente
-      const generarPreguntaAleatoria = (dificultad: Dificultad): Pregunta => {
-        const grado = dificultad === "facil" ? 3 : dificultad === "medio" ? 4 : 5
-        const maxCoef = dificultad === "facil" ? 5 : dificultad === "medio" ? 8 : 10
 
-        // Generar coeficientes aleatorios
-        const coeficientes = Array.from(
-          { length: grado + 1 },
-          () => Math.floor(Math.random() * (maxCoef * 2 + 1)) - maxCoef,
-        )
-
-        // Asegurar que el coeficiente principal no sea 0
-        if (coeficientes[0] === 0) coeficientes[0] = 1
-
-        // Generar un divisor aleatorio que no sea 0
-        let divisor = 0
-        while (divisor === 0) {
-          divisor = Math.floor(Math.random() * 5) - 2
-        }
-
-        // Calcular el resultado usando Ruffini
-        const resultado = coeficientes.reduce((acc, coef) => acc * divisor + coef, 0)
-
-        // Generar opciones aleatorias únicas
-        const opcionesBase = new Set([resultado])
-        while (opcionesBase.size < 4) {
-          const opcion = resultado + Math.floor(Math.random() * 8) - 4
-          if (opcion !== resultado) {
-            opcionesBase.add(opcion)
-          }
-        }
-
-        // Mezclar opciones
-        const opciones = Array.from(opcionesBase)
-          .sort(() => Math.random() - 0.5)
-          .map(String)
-        const respuestaCorrecta = opciones.indexOf(String(resultado))
-
-        // Crear términos del polinomio para renderizado
-        const terminosPolinomio: TerminoPolinomio[] = coeficientes
-          .map((coef, index) => ({
-            coeficiente: coef,
-            exponente: grado - index,
-          }))
-          .filter((termino) => termino.coeficiente !== 0)
-
-        if (terminosPolinomio.length === 0) {
-          terminosPolinomio.push({ coeficiente: 0, exponente: 0 })
-        }
-
-        return {
-          id: Math.random(),
-          polinomio: terminosPolinomio,
-          divisor,
-          opciones,
-          respuestaCorrecta,
-          explicacion: `Al aplicar Ruffini con divisor (x${divisor >= 0 ? "-" : "+"}${Math.abs(divisor)}), el residuo es ${resultado}.`,
-        }
-      }
-
-      // Generar conjunto de preguntas según la dificultad
-      const nuevasPreguntas = Array.from({ length: 5 }, () => generarPreguntaAleatoria(dificultad))
-      setPreguntas(nuevasPreguntas)
-      setPreguntaActual(0)
-      setRespuestaSeleccionada(null)
-      setRespuestaEnviada(false)
-      setMostrarFeedback(false)
-    } catch (error) {
-      console.error("Error al generar preguntas:", error)
-    }
+  // Eliminar código duplicado y mantener solo la implementación en generarPreguntaAleatoria
   }
 
   const iniciarJuego = () => {
@@ -258,12 +259,15 @@ export default function QuizPage() {
   }
 
   const verificarRespuesta = () => {
-    if (respuestaSeleccionada === null || respuestaEnviada) return
+    if (respuestaSeleccionada === null || respuestaEnviada || !preguntas[preguntaActual]) return
 
     setRespuestaEnviada(true)
     setMostrarFeedback(true)
 
-    if (respuestaSeleccionada === preguntas[preguntaActual]?.respuestaCorrecta) {
+    const preguntaActualObj = preguntas[preguntaActual]
+    const esRespuestaCorrecta = respuestaSeleccionada === preguntaActualObj.respuestaCorrecta
+
+    if (esRespuestaCorrecta) {
       // Respuesta correcta
       const puntosGanados = dificultad === "facil" ? 10 : dificultad === "medio" ? 20 : 30
       setPuntuacion((prevPuntuacion) => prevPuntuacion + puntosGanados)
@@ -280,8 +284,10 @@ export default function QuizPage() {
   }
 
   const siguientePregunta = () => {
+    if (!preguntas.length) return
+
     if (preguntaActual < preguntas.length - 1) {
-      setPreguntaActual(preguntaActual + 1)
+      setPreguntaActual((prev) => prev + 1)
       setRespuestaSeleccionada(null)
       setRespuestaEnviada(false)
       setMostrarFeedback(false)
